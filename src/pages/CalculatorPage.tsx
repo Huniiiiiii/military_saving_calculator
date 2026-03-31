@@ -337,8 +337,13 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
         {/* Content (Scrollable) */}
         <div className="flex-1 px-4 py-4 pb-44">
+          <p className="text-[10px] font-bold text-slate-400 mb-2 ml-1">
+            내용은 2026.04.01. 기준이에요
+          </p>
+
           {/* User Selection Summary */}
           <div className="mb-4 flex items-center justify-between bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-0.5">선택한 복무 정보</span>
               <h2 className="text-[13px] font-black text-slate-900 leading-tight">
