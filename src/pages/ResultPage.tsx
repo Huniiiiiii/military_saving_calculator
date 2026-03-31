@@ -44,12 +44,31 @@ const ResultPage: React.FC<ResultPageProps> = ({
   const [expandedBankIdx, setExpandedBankIdx] = useState<number | null>(null);
   const currentBranch = militaryBranches.find(b => b.id === selectedBranchId) || militaryBranches[0];
 
+  const getFilteredPrimeRates = (bank: Bank, months: number) => {
+    const today = new Date();
+    const eventStartDate = new Date('2026-01-26');
+    const eventEndDate = new Date('2026-07-25');
+
+    return bank.primeRates.filter(prime => {
+      // KB Event Period Check
+      if (prime.id === 'kb_event') {
+        return today >= eventStartDate && today <= eventEndDate;
+      }
+      // KB 3-month Minimum Period Check
+      if (bank.id === 'kb' && (prime.id === 'kb_housing' || prime.id === 'kb_social_vulnerable')) {
+        return months >= 3;
+      }
+      return true;
+    });
+  };
+
   const calculateResult = (boxState: BoxState) => {
     const bank = banks.find(b => b.id === boxState.bankId) as Bank;
     const baseRateObj = bank.baseRates.find(r => months >= r.range[0] && months <= r.range[1]);
     const baseRate = baseRateObj ? baseRateObj.rate : 0.05;
     
-    const selectedPrimes = bank.primeRates.filter(p => boxState.selectedPrimeIds.includes(p.id));
+    const filteredPrimes = getFilteredPrimeRates(bank, months);
+    const selectedPrimes = filteredPrimes.filter(p => boxState.selectedPrimeIds.includes(p.id));
     const totalSelectedPrime = selectedPrimes.reduce((sum, p) => sum + p.rate, 0);
     const appliedPrimeRate = Math.min(totalSelectedPrime, bank.maxPrimeRate);
     

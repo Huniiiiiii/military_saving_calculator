@@ -61,6 +61,24 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     );
   };
 
+  const getFilteredPrimeRates = (bank: Bank, months: number) => {
+    const today = new Date();
+    const eventStartDate = new Date('2026-01-26');
+    const eventEndDate = new Date('2026-07-25');
+
+    return bank.primeRates.filter(prime => {
+      // KB Event Period Check
+      if (prime.id === 'kb_event') {
+        return today >= eventStartDate && today <= eventEndDate;
+      }
+      // KB 3-month Minimum Period Check
+      if (bank.id === 'kb' && (prime.id === 'kb_housing' || prime.id === 'kb_social_vulnerable')) {
+        return months >= 3;
+      }
+      return true;
+    });
+  };
+
   const calculateResult = (boxState: BoxState) => {
     const bank = banks.find(b => b.id === boxState.bankId) as Bank;
     if (!bank) {
@@ -79,7 +97,8 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const baseRateObj = bank.baseRates.find(r => months >= r.range[0] && months <= r.range[1]);
     const baseRate = baseRateObj ? baseRateObj.rate : 0.05;
     
-    const totalSelectedPrime = bank.primeRates
+    const filteredPrimes = getFilteredPrimeRates(bank, months);
+    const totalSelectedPrime = filteredPrimes
       .filter(p => boxState.selectedPrimeIds.includes(p.id))
       .reduce((sum, p) => sum + p.rate, 0);
     const appliedPrimeRate = Math.min(totalSelectedPrime, bank.maxPrimeRate);
@@ -157,16 +176,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const borderColor = color === 'blue' ? 'border-[#1A5CFF]' : 'border-[#E0B0FF]';
     const textColor = color === 'blue' ? 'text-blue-600' : 'text-purple-600';
 
-    // Filter prime rates based on date for kb_event
-    const today = new Date();
-    const eventStartDate = new Date('2026-01-26');
-    const eventEndDate = new Date('2026-07-25');
-    const filteredPrimeRates = bank ? bank.primeRates.filter(prime => {
-      if (prime.id === 'kb_event') {
-        return today >= eventStartDate && today <= eventEndDate;
-      }
-      return true;
-    }) : [];
+    const filteredPrimeRates = bank ? getFilteredPrimeRates(bank, months) : [];
 
     return (
       <div className={`w-full rounded-[1.5rem] border-2 ${borderColor} p-5 mb-5 bg-white shadow-sm`}>
