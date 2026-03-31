@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
-import onboardingCh from '../assets/onboarding_ch.png';
+import onboardingCh from '../assets/onboarding_ch.webp';
 
 interface OnboardingProps {
   onStart: () => void;
@@ -16,7 +16,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
       className="min-h-screen bg-[#A5D7D9] flex flex-col items-center justify-center overflow-hidden"
     >
       <div className="w-full max-w-[480px] min-h-screen flex flex-col items-center justify-between relative bg-[#A5D7D9] sm:shadow-[0_0_100px_rgba(0,0,0,0.1)]">
-        <div className="flex-1 w-full flex flex-col items-center justify-center relative px-8 pt-12 sm:scale-90 transition-transform">
+        <div className="flex-1 w-full flex flex-col items-center justify-center relative px-8 pt-6 sm:scale-90 transition-transform">
           {/* Character Image */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -33,40 +33,40 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
           </motion.div>
         </div>
 
-        {/* Bottom UI Section (White Area like image crop) */}
+        {/* Bottom UI Section */}
         <motion.div 
           initial={{ y: 100 }}
           animate={{ y: 0 }}
           transition={{ delay: 0.5, type: "spring", damping: 20 }}
-          className="w-full bg-white rounded-t-[2.5rem] p-8 pt-10 shadow-[0_-15px_30px_rgba(0,0,0,0.05)] flex flex-col items-center z-30"
+          className="w-full bg-white rounded-t-[2rem] p-6 pt-8 shadow-[0_-15px_30px_rgba(0,0,0,0.05)] flex flex-col items-center z-30"
         >
           <div className="w-full text-center">
-            <h1 className="text-2xl font-black text-slate-700 leading-tight mb-3 tracking-tighter">
+            <h1 className="text-xl font-black text-slate-700 leading-tight mb-1 tracking-tighter">
               전역할 때 받는 <span className="text-[#2D6A6D]">진짜 목돈,</span><br />
-              <h1 className="text-3xl font-black text-slate-900 leading-tight mb-3 tracking-tighter">장병내일준비적금</h1>
+              <span className="text-2xl font-black text-slate-900">장병내일준비적금</span>
             </h1>
-            <p className="text-slate-400 font-bold mb-8 text-base">
+            <p className="text-slate-400 font-bold mb-6 text-sm">
               가장 확실한 군 생활 재테크,<br />
               지금 바로 계산해 보세요.
             </p>
             
             <button 
               onClick={onStart}
-              className="group w-full py-5 bg-[#2D6A6D] text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-lg hover:bg-[#1f4a4c] transition-all active:scale-[0.98]"
+              className="group w-full py-4 bg-[#2D6A6D] text-white rounded-xl font-black text-base flex items-center justify-center gap-2 shadow-lg hover:bg-[#1f4a4c] transition-all active:scale-[0.98]"
             >
               내 적금 계산하기
-              <ChevronRight size={22} className="group-hover:translate-x-1 transition-transform" />
+              <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </button>
             
-            <div className="grid grid-cols-3 gap-2 mt-8">
+            <div className="grid grid-cols-3 gap-2 mt-6">
               {[
                 { label: "최고 기본 5.0%", sub: "은행 금리" },
                 { label: "15.4% 면제", sub: "비과세" },
                 { label: "원금 100%", sub: "정부 지원" },
               ].map((item, i) => (
                 <div key={i} className="flex flex-col items-center">
-                  <span className="text-xs font-black text-slate-800">{item.label}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{item.sub}</span>
+                  <span className="text-[11px] font-black text-slate-800">{item.label}</span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{item.sub}</span>
                 </div>
               ))}
             </div>

@@ -46,6 +46,7 @@ const App: React.FC = () => {
         />
       ) : (
         <CalculatorPage
+          selectedBranchId={selectedBranchId}
           months={months}
           box1={box1}
           box2={box2}
