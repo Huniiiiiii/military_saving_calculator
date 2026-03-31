@@ -14,6 +14,7 @@ interface PrimeRate {
 interface Bank {
   id: string;
   name: string;
+  link: string;
   baseRates: { range: number[]; rate: number }[];
   primeRates: PrimeRate[];
   maxPrimeRate: number;
@@ -90,6 +91,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
       baseRate,
       primeRate: appliedPrimeRate,
       bankName: bank.name,
+      bankLink: bank.link,
       selectedPrimes,
       isCapped: totalSelectedPrime > bank.maxPrimeRate,
       monthlyAmount: boxState.amount
@@ -123,7 +125,11 @@ const ResultPage: React.FC<ResultPageProps> = ({
           <div className="w-10" />
         </header>
 
-        <div className="flex-1 px-4 py-8 pb-20">
+        <div className="flex-1 px-4 pt-4 pb-20">
+          <p className="text-[10px] font-bold text-slate-400 mb-2 ml-1">
+            내용은 2026.04.01. 기준이에요
+          </p>
+
           {/* Main Result Card */}
           <div className="bg-[#1A5CFF] rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-200/50 mb-10 relative overflow-hidden">
 
@@ -247,10 +253,21 @@ const ResultPage: React.FC<ResultPageProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-4">
                       <span className="text-slate-500 text-xs font-bold">이 은행 만기 이자</span>
                       <span className="text-slate-900 font-black">{formatKRW(res.bankInterest)}원</span>
                     </div>
+
+                    <a 
+                      href={res.bankLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-600 text-[12px] font-bold flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors"
+                    >
+                      <Info size={14} />
+                      은행 공식 안내 보기
+                    </a>
 
                     <AnimatePresence>
                       {isExpanded && (

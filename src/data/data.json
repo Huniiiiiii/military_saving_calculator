@@ -16,6 +16,7 @@
     {
       "id": "hana",
       "name": "하나은행",
+      "link": "https://www.kebhana.com/cont/mall/mall08/mall0801/mall080102/1456099_115157.jsp",
       "baseRates": [
         { "range": [1, 11], "rate": 0.035 },
         { "range": [12, 14], "rate": 0.046 },
@@ -43,6 +44,7 @@
     {
       "id": "kb",   
       "name": "KB국민은행",
+      "link": "https://obank.kbstar.com/quics?page=C016613&cc=b061496:b061645&isNew=N&prcode=DP01000939#loading",
       "baseRates": [
         { "range": [1, 11], "rate": 0.040 },
         { "range": [12, 14], "rate": 0.045 },
@@ -69,7 +71,8 @@
     {
       "id": "shinhan",
       "name": "신한은행",
-       "baseRates": [
+      "link": "https://bank.shinhan.com/index.jsp#020102010110",
+      "baseRates": [
         { "range": [1, 5], "rate": 0.035 },
         { "range": [6, 11], "rate": 0.040 },
 	{ "range": [12, 14], "rate": 0.045 },
@@ -94,6 +97,7 @@
     {
       "id": "ibk",
       "name": "IBK기업은행",
+      "link": "https://mybank.ibk.co.kr/uib/jsp/guest/ntr/ntr70/ntr7010/PNTR701000_i2.jsp?lncd=01&grcd=21&tmcd=121&pdcd=0112#_dummy",
       "baseRates": [
         { "range": [1, 5], "rate": 0.040 },
         { "range": [6, 11], "rate": 0.040 },
