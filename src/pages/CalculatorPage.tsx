@@ -63,6 +63,19 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   const calculateResult = (boxState: BoxState) => {
     const bank = banks.find(b => b.id === boxState.bankId) as Bank;
+    if (!bank) {
+      const principal = boxState.amount * months;
+      const matchingSupport = Math.floor(principal * globalConfig.matchingSupportRate);
+      return { 
+        principal, 
+        bankInterest: 0, 
+        matchingSupport, 
+        total: principal + matchingSupport, 
+        baseRate: "0.0",
+        primeRate: "0.0"
+      };
+    }
+
     const baseRateObj = bank.baseRates.find(r => months >= r.range[0] && months <= r.range[1]);
     const baseRate = baseRateObj ? baseRateObj.rate : 0.05;
     
@@ -110,13 +123,15 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const handleAmountInputChange = (boxNum: 1 | 2, value: number) => {
     const otherBox = boxNum === 1 ? box2 : box1;
 
+    // 1. 개별 은행 한도 체크 (30만원)
     if (value > globalConfig.maxDepositPerBank) {
-      alert("한 은행당 최대 30만원까지 가능합니다.");
+      alert(`한 은행당 최대 ${globalConfig.maxDepositPerBank / 10000}만원까지 납입 가능합니다. (30만원 초과)`);
       return;
     }
 
+    // 2. 전체 합산 한도 체크 (55만원)
     if (value + otherBox.amount > globalConfig.maxTotalMonthlyDeposit) {
-      alert("두 은행 합산 최대 55만원까지 가능합니다.");
+      alert(`두 은행 합산 최대 ${globalConfig.maxTotalMonthlyDeposit / 10000}만원까지 납입 가능합니다. (55만원 초과)`);
       return;
     }
 
@@ -137,8 +152,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     color: 'blue' | 'purple',
     boxNum: 1 | 2
   ) => {
-    const bank = (banks.find(b => b.id === boxState.bankId) || banks[0]) as Bank;
-    const lightBg = color === 'blue' ? 'bg-blue-50/50' : 'bg-purple-50/50';
+    const bank = (banks.find(b => b.id === boxState.bankId)) as Bank | undefined;
     const badgeBg = color === 'blue' ? 'bg-[#1A5CFF]' : 'bg-[#B035FF]';
     const borderColor = color === 'blue' ? 'border-[#1A5CFF]' : 'border-[#E0B0FF]';
     const textColor = color === 'blue' ? 'text-blue-600' : 'text-purple-600';
@@ -147,12 +161,12 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const today = new Date();
     const eventStartDate = new Date('2026-01-26');
     const eventEndDate = new Date('2026-07-25');
-    const filteredPrimeRates = bank.primeRates.filter(prime => {
+    const filteredPrimeRates = bank ? bank.primeRates.filter(prime => {
       if (prime.id === 'kb_event') {
         return today >= eventStartDate && today <= eventEndDate;
       }
       return true;
-    });
+    }) : [];
 
     return (
       <div className={`w-full rounded-[1.5rem] border-2 ${borderColor} p-5 mb-5 bg-white shadow-sm`}>
@@ -162,7 +176,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
           </span>
           <div className="text-right">
             <span className={`text-[12px] font-bold ${textColor}`}>
-              기본 {res.baseRate}% <span className="text-slate-300 font-normal">+</span> 우대 {res.primeRate}%
+              {bank ? `기본 ${res.baseRate}% + 우대 ${res.primeRate}%` : '은행을 선택해주세요'}
             </span>
           </div>
         </div>
@@ -173,15 +187,23 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <select 
               value={boxState.bankId} 
               onChange={(e) => setBox(prev => ({ ...prev, bankId: e.target.value, selectedPrimeIds: [] }))}
-              className={`w-full appearance-none bg-slate-50 border border-slate-100 rounded-xl p-3 pr-10 text-base font-bold text-slate-800 outline-none transition-all shadow-inner hover:bg-white hover:border-slate-200 focus:bg-white focus:border-${color === 'blue' ? 'blue-500' : 'purple-500'} focus:shadow-md focus:ring-4 ${color === 'blue' ? 'focus:ring-blue-50' : 'focus:ring-purple-50'}`}
+              className={`w-full appearance-none rounded-xl p-3 pr-10 text-base font-bold outline-none transition-all cursor-pointer border
+                ${boxState.bankId === '' ? 'text-slate-400' : 'text-slate-800'}
+                ${color === 'blue' 
+                  ? 'bg-blue-50/30 border-blue-100 hover:border-blue-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100/50' 
+                  : 'bg-purple-50/30 border-purple-100 hover:border-purple-300 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-100/50'
+                }`}
             >
+              <option value="" disabled>은행을 선택하세요</option>
               {banks.map(b => (
-                <option key={b.id} value={b.id} disabled={b.id === otherBankId}>
+                <option key={b.id} value={b.id} disabled={b.id === otherBankId} className="text-slate-800">
                   {b.name} {b.id === otherBankId ? '(선택됨)' : ''}
                 </option>
               ))}
             </select>
-            <div className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${color === 'blue' ? 'group-focus-within:text-blue-500' : 'group-focus-within:text-purple-500'} text-slate-400`}>
+            <div className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors 
+              ${color === 'blue' ? 'text-blue-400 group-focus-within:text-blue-600' : 'text-purple-400 group-focus-within:text-purple-600'}`}
+            >
               <ChevronDown size={18} />
             </div>
           </div>
@@ -203,7 +225,11 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
         <div className="space-y-2">
           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-tight ml-1">우대금리 조건</p>
-          {bank.id === 'shinhan' && months < 6 ? (
+          {!bank ? (
+             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
+               <p className="text-[11px] font-bold text-slate-400">은행을 먼저 선택해주세요</p>
+             </div>
+          ) : bank.id === 'shinhan' && months < 6 ? (
             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
               <p className="text-[11px] font-bold text-slate-400">6개월 미만은 해당사항 없음</p>
             </div>
@@ -287,6 +313,8 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     );
   };
 
+  const isAnyBankNotSelected = box1.bankId === '' || box2.bankId === '';
+
   return (
     <motion.div 
       initial={{ opacity: 0, x: 20 }} 
@@ -297,7 +325,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
       <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
         
         {/* Header */}
-        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF]/90 backdrop-blur-md z-10 border-b border-slate-100/50">
+        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF] z-30 border-b border-slate-200 shadow-sm">
           <button onClick={onBack} className="p-2 text-slate-900">
             <ChevronLeft size={28} strokeWidth={2.5} />
           </button>
@@ -352,9 +380,11 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
             <button 
               onClick={onShowDetails}
-              className="w-full h-14 bg-[#0F172A] text-white rounded-xl font-bold text-base shadow-lg active:scale-[0.98] transition-all"
+              disabled={isAnyBankNotSelected}
+              className={`w-full h-14 rounded-xl font-bold text-base shadow-lg active:scale-[0.98] transition-all
+                ${isAnyBankNotSelected ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#0F172A] text-white'}`}
             >
-              상세 분석 보기
+              {isAnyBankNotSelected ? '은행을 선택해주세요' : '상세 분석 보기'}
             </button>
           </div>
         </div>

@@ -27,12 +27,12 @@ const InputPage: React.FC<InputPageProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-white flex flex-col items-center overflow-hidden"
+      className="min-h-screen bg-[#F8FAFF] flex flex-col items-center overflow-hidden"
     >
-      <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-white sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
+      <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
         
         {/* Navigation Bar */}
-        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-10 border-b border-slate-100/50">
+        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF] z-30 border-b border-slate-200 shadow-sm">
           <button 
             onClick={onBack} 
             className="p-2 text-slate-900"
