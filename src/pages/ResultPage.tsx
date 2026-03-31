@@ -72,7 +72,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
       primeRate: appliedPrimeRate,
       bankName: bank.name,
       selectedPrimes,
-      isCapped: totalSelectedPrime > bank.maxPrimeRate
+      isCapped: totalSelectedPrime > bank.maxPrimeRate,
+      monthlyAmount: boxState.amount
     };
   };
 
@@ -206,6 +207,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
                             {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                           </div>
                         </div>
+                        <p className="text-[11px] font-bold text-slate-400 mt-0.5">월 {formatKRW(res.monthlyAmount)}원 납입</p>
                       </div>
                       <div className="text-right">
                         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">최종 적용 금리</p>
@@ -318,7 +320,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
         </div>
 
         {/* Bottom Button */}
-        <div className="sticky bottom-0 left-0 w-full p-4 bg-[#F8FAFF]/80 backdrop-blur-md">
+        <div className="sticky bottom-0 left-0 w-full p-4 bg-[#F8FAFF] z-30 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
           <button 
             onClick={onBack}
             className="w-full h-14 bg-white border-2 border-slate-200 text-slate-900 rounded-xl font-bold text-base shadow-sm active:scale-[0.98] transition-all"
