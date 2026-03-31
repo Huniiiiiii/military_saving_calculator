@@ -37,6 +37,15 @@ interface CalculatorPageProps {
   onShowDetails: () => void;
 }
 
+interface CalcResult {
+  principal: number;
+  bankInterest: number;
+  matchingSupport: number;
+  total: number;
+  baseRate: string;
+  primeRate: string;
+}
+
 const CalculatorPage: React.FC<CalculatorPageProps> = ({
   selectedBranchId,
   months,
@@ -79,7 +88,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     });
   };
 
-  const calculateResult = (boxState: BoxState) => {
+  const calculateResult = (boxState: BoxState): CalcResult => {
     const bank = banks.find(b => b.id === boxState.bankId) as Bank;
     if (!bank) {
       const principal = boxState.amount * months;
@@ -166,7 +175,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setBox: React.Dispatch<React.SetStateAction<BoxState>>, 
     otherGroups: string[], 
     otherBankId: string,
-    res: any, 
+    res: CalcResult, 
     label: string, 
     color: 'blue' | 'purple',
     boxNum: 1 | 2

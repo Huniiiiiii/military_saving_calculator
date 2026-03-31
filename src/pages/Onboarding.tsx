@@ -57,8 +57,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
                 { label: "원금 100%", sub: "정부 지원" },
               ].map((item, i) => (
                 <div key={i} className="flex flex-col items-center">
-                  <span className="text-[11px] font-black text-slate-800">{item.label}</span>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter text-slate-400">{item.sub}</span>
+                  <span className="text-[12px] font-black text-slate-800">{item.label}</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter text-slate-400">{item.sub}</span>
                 </div>
               ))}
             </div>

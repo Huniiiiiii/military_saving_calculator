@@ -1,13 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import data from './data/data.json';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import Onboarding from './pages/Onboarding';
 import InputPage from './pages/InputPage';
 import CalculatorPage from './pages/CalculatorPage';
 import ResultPage from './pages/ResultPage';
 
 const App: React.FC = () => {
-  const { militaryBranches, banks } = data;
+  const { militaryBranches } = data;
 
   // --- States ---
   const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result'>('onboarding');
