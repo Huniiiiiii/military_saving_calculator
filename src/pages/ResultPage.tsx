@@ -360,11 +360,13 @@ const ResultPage: React.FC<ResultPageProps> = ({
         <div className="sticky bottom-0 left-0 w-full p-4 bg-[#F8FAFF] z-30 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
           <button 
             onClick={() => {
-              ReactGA.event({
-                category: 'User',
-                action: 'result_back_to_calc_click',
-                label: '다시 계산하기'
-              });
+              if (import.meta.env.PROD) {
+                ReactGA.event({
+                  category: 'User',
+                  action: 'result_back_to_calc_click',
+                  label: '다시 계산하기'
+                });
+              }
               onBack();
             }}
             className="w-full h-14 bg-white border-2 border-slate-200 text-slate-900 rounded-xl font-bold text-base shadow-sm active:scale-[0.98] transition-all"

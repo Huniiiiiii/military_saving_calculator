@@ -10,11 +10,13 @@ interface OnboardingProps {
 
 const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
   const handleStart = () => {
-    ReactGA.event({
-      category: 'User',
-      action: 'onboarding_start_click',
-      label: '계산하러가기'
-    });
+    if (import.meta.env.PROD) {
+      ReactGA.event({
+        category: 'User',
+        action: 'onboarding_start_click',
+        label: '계산하러가기'
+      });
+    }
     onStart();
   };
 

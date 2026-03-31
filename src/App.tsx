@@ -8,7 +8,9 @@ import CalculatorPage from './pages/CalculatorPage';
 import ResultPage from './pages/ResultPage';
 
 // Initialize GA4 with your Measurement ID (Replace with yours)
-ReactGA.initialize('G-3K28LXY5ZB');
+if (import.meta.env.PROD) {
+  ReactGA.initialize('G-XXXXXXXXXX');
+}
 
 const App: React.FC = () => {
   const { militaryBranches } = data;
@@ -18,7 +20,9 @@ const App: React.FC = () => {
 
   // Track page views when step changes
   useEffect(() => {
-    ReactGA.send({ hitType: 'pageview', page: `/${step}`, title: step });
+    if (import.meta.env.PROD) {
+      ReactGA.send({ hitType: 'pageview', page: `/${step}`, title: step });
+    }
   }, [step]);
 
   const [selectedBranchId, setSelectedBranchId] = useState(militaryBranches[0].id);

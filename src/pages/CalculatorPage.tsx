@@ -405,11 +405,13 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
             <button 
               onClick={() => {
-                ReactGA.event({
-                  category: 'User',
-                  action: 'calculator_show_details_click',
-                  label: '상세 분석 보기'
-                });
+                if (import.meta.env.PROD) {
+                  ReactGA.event({
+                    category: 'User',
+                    action: 'calculator_show_details_click',
+                    label: '상세 분석 보기'
+                  });
+                }
                 onShowDetails();
               }}
               disabled={isAnyBankNotSelected}
