@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import ReactGA from 'react-ga4';
 import data from '../data/data.json';
 
 interface PrimeRate {
@@ -403,7 +404,14 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
             <button 
-              onClick={onShowDetails}
+              onClick={() => {
+                ReactGA.event({
+                  category: 'User',
+                  action: 'calculator_show_details_click',
+                  label: '상세 분석 보기'
+                });
+                onShowDetails();
+              }}
               disabled={isAnyBankNotSelected}
               className={`w-full h-14 rounded-xl font-bold text-base shadow-lg active:scale-[0.98] transition-all
                 ${isAnyBankNotSelected ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#0F172A] text-white'}`}

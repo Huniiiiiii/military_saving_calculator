@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
+import ReactGA from 'react-ga4';
 import onboardingCh from '../assets/onboarding_ch.webp';
 
 interface OnboardingProps {
@@ -8,6 +9,15 @@ interface OnboardingProps {
 }
 
 const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
+  const handleStart = () => {
+    ReactGA.event({
+      category: 'User',
+      action: 'onboarding_start_click',
+      label: '계산하러가기'
+    });
+    onStart();
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -64,7 +74,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
             </div>
             
             <button 
-              onClick={onStart}
+              onClick={handleStart}
               className="group w-full py-4 bg-[#2D6A6D] text-white rounded-xl font-black text-base flex items-center justify-center gap-2 shadow-lg hover:bg-[#1f4a4c] transition-all active:scale-[0.98]"
             >
               내 적금 계산하기

@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import data from './data/data.json';
 import { AnimatePresence } from 'framer-motion';
+import ReactGA from 'react-ga4';
 import Onboarding from './pages/Onboarding';
 import InputPage from './pages/InputPage';
 import CalculatorPage from './pages/CalculatorPage';
 import ResultPage from './pages/ResultPage';
+
+// Initialize GA4 with your Measurement ID (Replace with yours)
+ReactGA.initialize('G-3K28LXY5ZB');
 
 const App: React.FC = () => {
   const { militaryBranches } = data;
 
   // --- States ---
   const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result'>('onboarding');
+
+  // Track page views when step changes
+  useEffect(() => {
+    ReactGA.send({ hitType: 'pageview', page: `/${step}`, title: step });
+  }, [step]);
+
   const [selectedBranchId, setSelectedBranchId] = useState(militaryBranches[0].id);
   const [months, setMonths] = useState(militaryBranches[0].maxMonths);
   const [box1, setBox1] = useState({ bankId: '', amount: 300000, selectedPrimeIds: [] as string[] });
