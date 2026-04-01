@@ -92,6 +92,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
               <span className="text-[11px] font-bold border-b border-slate-300">장병내일준비적금이란?</span>
               <ChevronRight size={12} strokeWidth={3} />
             </a>
+
+            <a 
+              href="https://forms.gle/yN4kUQzbCYbFz59J7"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition-colors opacity-60 hover:opacity-100"
+            >
+              <span className="text-[10px] font-bold border-b border-slate-300">기능 제안 및 오류 제보</span>
+            </a>
           </div>
         </motion.div>
       </div>

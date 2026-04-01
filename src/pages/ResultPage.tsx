@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2} from 'lucide-react';
 import ReactGA from 'react-ga4';
 import data from '../data/data.json';
 
@@ -71,6 +71,10 @@ const ResultPage: React.FC<ResultPageProps> = ({
       }
       // Hana 3-month Minimum Period Check
       if (prime.id === 'hana_salary' || prime.id === 'hana_housing') {
+        return months >= 3;
+      }
+      // Woori 3-month Minimum Period Check
+      if (bank.id === 'woori' && (prime.id === 'woori_bank' || prime.id === 'woori_card')) {
         return months >= 3;
       }
       return true;
@@ -354,13 +358,13 @@ const ResultPage: React.FC<ResultPageProps> = ({
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-1.5 shrink-0"></div>
                     <p className="text-[13px] text-slate-300 leading-snug">
-                      <strong className="text-white">이자소득 비과세:</strong> 일반 적금과 달리 이자에 대한 세금(15.4%)이 전혀 붙지 않습니다.
+                      <strong className="text-white">이자소득 비과세:</strong> 일반 적금과 달리 이자에 대한 세금(15.4%)이 없어요.
                     </p>
                   </li>
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-1.5 shrink-0"></div>
                     <p className="text-[13px] text-slate-300 leading-snug">
-                      <strong className="text-white">정부 매칭지원금:</strong> 국가에서 납입 원금의 {globalConfig.matchingSupportRate * 100}%를 추가로 지원해 드립니다.
+                      <strong className="text-white">정부 매칭지원금:</strong> 국가에서 납입 원금의 {globalConfig.matchingSupportRate * 100}%를 추가로 지원해줘요.
                     </p>
                   </li>
                 </ul>
@@ -370,7 +374,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
         </div>
 
         {/* Bottom Button */}
-        <div className="sticky bottom-0 left-0 w-full p-4 bg-[#F8FAFF] z-30 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+        <div className="sticky bottom-0 left-0 w-full p-4 pb-6 bg-[#F8FAFF] z-30 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex flex-col items-center gap-3">
           <button 
             onClick={() => {
               if (import.meta.env.PROD) {
@@ -386,6 +390,25 @@ const ResultPage: React.FC<ResultPageProps> = ({
           >
             다시 계산하기
           </button>
+
+          <a 
+            href="https://forms.gle/yN4kUQzbCYbFz59J7"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              if (import.meta.env.PROD) {
+                ReactGA.event({
+                  category: 'User',
+                  action: 'contact_click',
+                  label: '문의하기 및 제안'
+                });
+              }
+            }}
+            className="flex items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <span className="text-[11px] font-bold border-b border-slate-300">문의하기 및 제안</span>
+            <ChevronRight size={12} strokeWidth={3} />
+          </a>
         </div>
       </div>
     </motion.div>

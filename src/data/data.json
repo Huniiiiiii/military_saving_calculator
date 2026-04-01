@@ -137,6 +137,38 @@
         }
       ],
       "maxPrimeRate": 0.052
+    },
+    {
+      "id": "woori",
+      "name": "우리은행",
+      "link": "https://spot.wooribank.com/pot/Dream?withyou=PODEP0019&cc=c007095:c009166;c012263:c012399&PRD_CD=P010002283&PRD_YN=Y",
+      "baseRates": [
+        { "range": [1, 5], "rate": 0.037 },
+        { "range": [6, 11], "rate": 0.040 },
+	{ "range": [12, 14], "rate": 0.043 },
+        { "range": [15, 24], "rate": 0.050 }
+      ],
+      "primeRates": [
+        { 
+          "id": "woori_housing", "group": "housing", "label": "주택청약", "rate": 0.002, 
+          "footnotes": ["이 상품의 신규월에 우리은행에서 가입한 주택청약종합저축 상품을 보유한 경우"]
+        },
+        { 
+         "id": "woori_marketing", "group": "woori_marketing", "label": "마케팅 동의 만기시까지 유지", "rate": 0.002,
+          "footnotes": [
+           "우리은행 상품ㆍ서비스 마케팅 동의항목 중 전화(휴대폰), SMS 항목 중 하나 이상을 동의한 후 만기 해지시점까지 유지한 경우"
+          ]
+        },
+	{ 
+          "id": "woori_card", "group": "woori_card", "label": "우리은행카드 매달 1회이상 사용", "rate": 0.002, 
+          "footnotes": ["신규월 및 만기월을 제외한 가입기간 동안 우리은행 입출식 계좌에서 우리카드사 신용/체크카드 결제금액이 매월 출금된 실적 보유한 경우"]
+        },
+	{ 
+          "id": "woori_bank", "group": "woori_bank", "label": "우리은행 입출금계좌에서 적금계좌로 자동이체", "rate": 0.004, 
+          "footnotes": ["우리은행 입출식 계좌에서 매월 자동이체를 통해 신규월 및 만기월을 제외한 가입기간의 1/2기간 이상 이 적금으로 적립한 경우"]
+        }
+      ],
+      "maxPrimeRate": 0.010
     }
   ]
 }

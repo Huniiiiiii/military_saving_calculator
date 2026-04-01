@@ -98,6 +98,10 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
       if (prime.id === 'hana_salary' || prime.id === 'hana_housing') {
         return months >= 3;
       }
+      // Woori 3-month Minimum Period Check
+      if (bank.id === 'woori' && (prime.id === 'woori_bank' || prime.id === 'woori_card')) {
+        return months >= 3;
+      }
       return true;
     });
   };
@@ -217,22 +221,31 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
         <div className="mb-4 relative">
           <p className="text-slate-400 text-[10px] font-medium mb-1.5 ml-1">저축 은행 선택</p>
           <div className="relative group">
+            {bank && (
+              <div className="absolute inset-0 flex items-center px-3 pointer-events-none text-base font-bold text-slate-800 z-10">
+                {bank.name}
+              </div>
+            )}
             <select 
               value={boxState.bankId} 
               onChange={(e) => setBox(prev => ({ ...prev, bankId: e.target.value, selectedPrimeIds: [] }))}
               className={`w-full appearance-none rounded-xl p-3 pr-10 text-base font-bold outline-none transition-all cursor-pointer border
-                ${boxState.bankId === '' ? 'text-slate-400' : 'text-slate-800'}
+                ${boxState.bankId === '' ? 'text-slate-400' : 'text-transparent'}
                 ${color === 'blue' 
                   ? 'bg-blue-50/30 border-blue-100 hover:border-blue-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100/50' 
                   : 'bg-purple-50/30 border-purple-100 hover:border-purple-300 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-100/50'
                 }`}
             >
               <option value="" disabled>은행을 선택하세요</option>
-              {banks.map(b => (
-                <option key={b.id} value={b.id} disabled={b.id === otherBankId} className="text-slate-800">
-                  {b.name} {b.id === otherBankId ? '(선택됨)' : ''}
-                </option>
-              ))}
+              {banks.map(b => {
+                const isRecommended = ['hana', 'kb', 'shinhan', 'ibk'].includes(b.id);
+                const maxPrimePct = (b.maxPrimeRate * 100).toFixed(1);
+                return (
+                  <option key={b.id} value={b.id} disabled={b.id === otherBankId} className="text-slate-800">
+                    {b.name}{isRecommended ? '(추천)' : ''} [최대 우대 {maxPrimePct}%] {b.id === otherBankId ? '(선택됨)' : ''}
+                  </option>
+                );
+              })}
             </select>
             <div className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors 
               ${color === 'blue' ? 'text-blue-400 group-focus-within:text-blue-600' : 'text-purple-400 group-focus-within:text-purple-600'}`}
@@ -257,7 +270,14 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
         </div>
 
         <div className="space-y-2">
-          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-tight ml-1">우대금리 조건</p>
+          <div className="flex justify-between items-center mb-1 px-1">
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-tight">우대금리 조건</p>
+            {bank && (
+              <span className="text-[10px] font-bold text-slate-400">
+                최대 +{(bank.maxPrimeRate * 100).toFixed(1)}%
+              </span>
+            )}
+          </div>
           {!bank ? (
              <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
                <p className="text-[11px] font-bold text-slate-400">은행을 먼저 선택해주세요</p>
@@ -266,7 +286,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
               <p className="text-[11px] font-bold text-slate-400">6개월 미만은 해당사항 없음</p>
             </div>
-          ) : bank.id === 'kb' && months < 3 ? (
+          ) : (bank.id === 'kb' || bank.id === 'woori') && months < 3 ? (
             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
               <p className="text-[11px] font-bold text-slate-400">3개월 미만은 해당사항 없음</p>
             </div>
