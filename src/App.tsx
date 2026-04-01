@@ -9,7 +9,7 @@ import ResultPage from './pages/ResultPage';
 
 // Initialize GA4 with your Measurement ID (Replace with yours)
 if (import.meta.env.PROD) {
-  ReactGA.initialize('G-XXXXXXXXXX');
+  ReactGA.initialize('G-3K28LXY5ZB');
 }
 
 const App: React.FC = () => {

@@ -79,10 +79,23 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     return bank.primeRates.filter(prime => {
       // KB Event Period Check
       if (prime.id === 'kb_event') {
-        return today >= eventStartDate && today <= eventEndDate;
+        const isPeriodValid = today >= eventStartDate && today <= eventEndDate;
+        return isPeriodValid && months >= 3;
+      }
+      // KB Card Period Check
+      if (prime.id === 'kb_card') {
+        return months >= 6;
       }
       // KB 3-month Minimum Period Check
       if (bank.id === 'kb' && (prime.id === 'kb_housing' || prime.id === 'kb_social_vulnerable')) {
+        return months >= 3;
+      }
+      // IBK 12-month Minimum Period Check
+      if (prime.id === 'ib_salary') {
+        return months >= 12;
+      }
+      // Hana 3-month Minimum Period Check
+      if (prime.id === 'hana_salary' || prime.id === 'hana_housing') {
         return months >= 3;
       }
       return true;
@@ -252,6 +265,10 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
           ) : bank.id === 'shinhan' && months < 6 ? (
             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
               <p className="text-[11px] font-bold text-slate-400">6개월 미만은 해당사항 없음</p>
+            </div>
+          ) : bank.id === 'kb' && months < 3 ? (
+            <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
+              <p className="text-[11px] font-bold text-slate-400">3개월 미만은 해당사항 없음</p>
             </div>
           ) : (
             filteredPrimeRates.map(prime => {

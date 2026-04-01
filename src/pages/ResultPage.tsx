@@ -54,10 +54,23 @@ const ResultPage: React.FC<ResultPageProps> = ({
     return bank.primeRates.filter(prime => {
       // KB Event Period Check
       if (prime.id === 'kb_event') {
-        return today >= eventStartDate && today <= eventEndDate;
+        const isPeriodValid = today >= eventStartDate && today <= eventEndDate;
+        return isPeriodValid && months >= 3;
+      }
+      // KB Card Period Check
+      if (prime.id === 'kb_card') {
+        return months >= 6;
       }
       // KB 3-month Minimum Period Check
       if (bank.id === 'kb' && (prime.id === 'kb_housing' || prime.id === 'kb_social_vulnerable')) {
+        return months >= 3;
+      }
+      // IBK 12-month Minimum Period Check
+      if (prime.id === 'ib_salary') {
+        return months >= 12;
+      }
+      // Hana 3-month Minimum Period Check
+      if (prime.id === 'hana_salary' || prime.id === 'hana_housing') {
         return months >= 3;
       }
       return true;
