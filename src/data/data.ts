@@ -119,7 +119,7 @@ export const data = {
       "baseRates": [
         { "range": [1, 5], "rate": 0.035 },
         { "range": [6, 11], "rate": 0.040 },
-	{ "range": [12, 14], "rate": 0.045 },
+	      { "range": [12, 14], "rate": 0.045 },
         { "range": [15, 24], "rate": 0.050 }
       ],
       "primeRates": [
