@@ -54,11 +54,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
         >
           <div className="w-full text-center">
             <h1 className="text-xl font-black text-slate-700 leading-tight mb-1 tracking-tighter">
-              전역할 때 받는 <span className="text-[#2D6A6D]">진짜 목돈,</span><br />
+              전역할 때 받는 <span className="text-[#2D6A6D]">진짜 목돈</span><br />
               <span className="text-2xl font-black text-slate-900">장병내일준비적금</span>
             </h1>
             <p className="text-slate-400 font-bold mb-4 text-sm">
-              가장 확실한 군 생활 재테크,<br />
+              가장 확실한 군 생활 재테크<br />
               지금 바로 계산해 보세요.
             </p>
 
