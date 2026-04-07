@@ -194,7 +194,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 2,
-      title: "청약 통장이 있는\n은행을 선택해주세요",
+      title: "청약 통장이 있는\n은행을 선택해주세요.",
       description: "해당 은행 이용 시 우대 금리 혜택이 있어요.",
       icon: <Building2 className="text-blue-500" size={24} />,
       content: (
@@ -282,7 +282,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
               {step === 4 ? "분석 시작하기" : "다음으로"}
             </button>
             <div className="mt-4 flex items-center justify-center gap-2 text-slate-400">
-              <Info size={14} /><span className="text-[11px] font-bold tracking-tight">입력하신 정보는 오직 추천에만 활용됩니다</span>
+              <Info size={14} /><span className="text-[11px] font-bold tracking-tight">입력하신 정보는 오직 추천에만 활용돼요.</span>
             </div>
           </div>
         </div>
