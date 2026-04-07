@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2, Sparkles, Share2, Download, X } from 'lucide-react';
 import ReactGA from 'react-ga4';
+import * as htmlToImage from 'html-to-image';
 import data from '../data/data.json';
 import { calculateResult } from '../utils/savingsUtils';
 import type { BoxState } from '../utils/savingsUtils';
@@ -31,6 +32,11 @@ const ResultPage: React.FC<ResultPageProps> = ({
 }) => {
   const { globalConfig, militaryBranches } = data;
   const [expandedBankIdx, setExpandedBankIdx] = useState<number | null>(null);
+  const [userName, setUserName] = useState('');
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  
+  const captureRef = useRef<HTMLDivElement>(null);
   const currentBranch = militaryBranches.find(b => b.id === selectedBranchId) || militaryBranches[0];
 
   const res1 = calculateResult(box1, months);
@@ -42,6 +48,71 @@ const ResultPage: React.FC<ResultPageProps> = ({
 
   const formatKRW = (val: number) => new Intl.NumberFormat('ko-KR').format(val);
 
+  const handleShareClick = () => {
+    if (import.meta.env.PROD) {
+      ReactGA.event({
+        category: 'User',
+        action: 'share_button_click',
+        label: '공유하기 버튼 클릭'
+      });
+    }
+    setIsNameModalOpen(true);
+  };
+
+  const handleSaveImage = async () => {
+    if (!captureRef.current) return;
+    
+    setIsCapturing(true);
+    if (import.meta.env.PROD) {
+      ReactGA.event({
+        category: 'User',
+        action: 'image_save_click',
+        label: '이미지 저장 버튼 클릭'
+      });
+    }
+
+    // Give state and animations a moment to update so all sections are expanded
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    try {
+      const dataUrl = await htmlToImage.toPng(captureRef.current, {
+        backgroundColor: '#F8FAFF',
+        style: {
+          borderRadius: '0'
+        }
+      });
+
+      const link = document.createElement('a');
+      link.download = `military-savings-${userName || 'result'}.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      alert('이미지가 기기에 저장되었습니다.');
+    } catch (error) {
+      console.error('Error saving image:', error);
+      alert('이미지 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (import.meta.env.PROD) {
+      ReactGA.event({
+        category: 'User',
+        action: 'link_copy_click',
+        label: '링크 복사 버튼 클릭'
+      });
+    }
+
+    try {
+      await navigator.clipboard.writeText(window.location.origin);
+      alert('서비스 링크가 클립보드에 복사되었습니다.');
+    } catch {
+      alert('링크 복사에 실패했습니다.');
+    }
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, x: 20 }} 
@@ -49,7 +120,10 @@ const ResultPage: React.FC<ResultPageProps> = ({
       exit={{ opacity: 0, x: -20 }}
       className="min-h-screen bg-[#F8FAFF] flex flex-col items-center"
     >
-      <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
+      <div 
+        ref={captureRef}
+        className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]"
+      >
         
         {/* Header */}
         <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF] z-30 border-b border-slate-200 shadow-sm">
@@ -57,7 +131,9 @@ const ResultPage: React.FC<ResultPageProps> = ({
             <ChevronLeft size={28} strokeWidth={2.5} />
           </button>
           <h1 className="text-[17px] font-bold text-slate-900">상세 분석 결과</h1>
-          <div className="w-10" />
+          <button onClick={handleShareClick} className="p-2 text-blue-600 active:scale-95 transition-transform">
+            <Share2 size={24} strokeWidth={2.5} />
+          </button>
         </header>
 
         <div className="flex-1 px-4 pt-4 pb-20">
@@ -72,12 +148,22 @@ const ResultPage: React.FC<ResultPageProps> = ({
             )}
           </div>
 
+          {/* User Name Tag (only visible during capture or if name is set) */}
+          {(userName || isCapturing) && (
+            <div className="mb-4 px-1">
+              <span className="text-xl font-black text-slate-900">
+                {userName ? `${userName}님` : 'OOO님'}의 
+              </span>
+              <span className="text-lg font-bold text-slate-600 ml-1">계산 결과입니다</span>
+            </div>
+          )}
+
           {/* Recommended Badge */}
           {isRecommended && (
             <div className="mb-6">
               <div className="mb-2.5 bg-blue-600 rounded-xl p-3 flex items-center gap-2 text-white shadow-lg shadow-blue-200">
                 <Sparkles size={18} />
-                <span className="text-xs font-black">AI 기반 최적의 조합을 찾았습니다</span>
+                <span className="text-xs font-black">AI 기반 최적의 조합을 찾았어요</span>
               </div>
               {recommendationInfo && (
                 <div className="flex flex-wrap gap-1.5 ml-1">
@@ -182,13 +268,14 @@ const ResultPage: React.FC<ResultPageProps> = ({
             </h3>
 
             {[res1, res2].map((res, idx) => {
-              const isExpanded = expandedBankIdx === idx;
+              const isExpanded = expandedBankIdx === idx || isCapturing;
               return (
                 <div 
                   key={idx} 
                   className={`bg-white rounded-3xl border transition-all duration-300 overflow-hidden cursor-pointer
-                    ${isExpanded ? 'border-blue-200 shadow-md ring-1 ring-blue-50' : 'border-slate-100 shadow-sm hover:border-slate-200'}`}
-                  onClick={() => setExpandedBankIdx(isExpanded ? null : idx)}
+                    ${isExpanded && !isCapturing ? 'border-blue-200 shadow-md ring-1 ring-blue-50' : 'border-slate-100 shadow-sm hover:border-slate-200'}
+                    ${isCapturing ? 'border-slate-100 shadow-none' : ''}`}
+                  onClick={() => !isCapturing && setExpandedBankIdx(expandedBankIdx === idx ? null : idx)}
                 >
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
@@ -228,23 +315,26 @@ const ResultPage: React.FC<ResultPageProps> = ({
                       <span className="text-slate-900 font-black">{formatKRW(res.bankInterest)}원</span>
                     </div>
 
-                    <a 
-                      href={res.bankLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-600 text-[12px] font-bold flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors"
-                    >
-                      <Info size={14} />
-                      은행 공식 안내 보기
-                    </a>
+                    {!isCapturing && (
+                      <a 
+                        href={res.bankLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-600 text-[12px] font-bold flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors"
+                      >
+                        <Info size={14} />
+                        은행 공식 안내 보기
+                      </a>
+                    )}
 
-                    <AnimatePresence>
+                    <AnimatePresence initial={!isCapturing}>
                       {isExpanded && (
                         <motion.div
-                          initial={{ height: 0, opacity: 0 }}
+                          initial={isCapturing ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
+                          transition={isCapturing ? { duration: 0 } : undefined}
                           className="overflow-hidden"
                         >
                           <div className="mt-6 pt-6 border-t border-dashed border-slate-200">
@@ -322,47 +412,129 @@ const ResultPage: React.FC<ResultPageProps> = ({
                 </ul>
               </div>
             </div>
+
+            {/* Link Watermark (only visible during capture) */}
+            {isCapturing && (
+              <div className="pt-10 pb-4 text-center">
+                <p className="text-[13px] font-bold text-slate-400">
+                  나의 장병내일준비적금 결과가 궁금하다면?
+                </p>
+                <p className="text-[15px] font-black text-blue-600 mt-1">
+                  {window.location.hostname}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Bottom Button */}
-        <div className="sticky bottom-0 left-0 w-full p-4 pb-6 bg-[#F8FAFF] z-30 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex flex-col items-center gap-3">
-          <button 
-            onClick={() => {
-              if (import.meta.env.PROD) {
-                ReactGA.event({
-                  category: 'User',
-                  action: 'result_back_to_calc_click',
-                  label: '다시 계산하기'
-                });
-              }
-              onBack();
-            }}
-            className="w-full h-14 bg-white border-2 border-slate-200 text-slate-900 rounded-xl font-bold text-base shadow-sm active:scale-[0.98] transition-all"
-          >
-            다시 계산하기
-          </button>
+        {!isCapturing && (
+          <div className="sticky bottom-0 left-0 w-full p-4 pb-6 bg-[#F8FAFF] z-30 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex flex-col items-center gap-3">
+            <button 
+              onClick={() => {
+                if (import.meta.env.PROD) {
+                  ReactGA.event({
+                    category: 'User',
+                    action: 'result_back_to_calc_click',
+                    label: '다시 계산하기'
+                  });
+                }
+                onBack();
+              }}
+              className="w-full h-14 bg-white border-2 border-slate-200 text-slate-900 rounded-xl font-bold text-base shadow-sm active:scale-[0.98] transition-all"
+            >
+              다시 계산하기
+            </button>
 
-          <a 
-            href="https://forms.gle/yN4kUQzbCYbFz59J7"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => {
-              if (import.meta.env.PROD) {
-                ReactGA.event({
-                  category: 'User',
-                  action: 'contact_click',
-                  label: '문의하기 및 제안'
-                });
-              }
-            }}
-            className="flex items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <span className="text-[11px] font-bold border-b border-slate-300">문의하기 및 제안</span>
-            <ChevronRight size={12} strokeWidth={3} />
-          </a>
-        </div>
+            <a 
+              href="https://forms.gle/yN4kUQzbCYbFz59J7"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                if (import.meta.env.PROD) {
+                  ReactGA.event({
+                    category: 'User',
+                    action: 'contact_click',
+                    label: '문의하기 및 제안'
+                  });
+                }
+              }}
+              className="flex items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <span className="text-[11px] font-bold border-b border-slate-300">문의하기 및 제안</span>
+              <ChevronRight size={12} strokeWidth={3} />
+            </a>
+          </div>
+        )}
       </div>
+
+      {/* Name Input Modal */}
+      <AnimatePresence>
+        {isNameModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsNameModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              className="relative w-full max-w-[480px] bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 shadow-2xl"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 mb-2">결과 공유하기</h3>
+                  <p className="text-sm text-slate-500 font-medium">이름을 입력하면 결과지에 함께 표시됩니다.</p>
+                </div>
+                <button onClick={() => setIsNameModalOpen(false)} className="p-2 text-slate-400">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-2 ml-1">이름 (선택사항)</label>
+                  <input
+                    type="text"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder="예: 홍길동"
+                    className="w-full h-14 px-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg font-bold text-slate-900 focus:border-blue-500 focus:bg-white outline-none transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <button
+                    onClick={handleSaveImage}
+                    disabled={isCapturing}
+                    className="w-full h-14 bg-blue-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    {isCapturing ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Download size={20} />
+                        결과 이미지 저장하기
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleCopyLink}
+                    className="w-full h-14 bg-slate-100 text-slate-900 rounded-2xl font-bold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                  >
+                    <Share2 size={20} />
+                    서비스 링크 복사하기
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
