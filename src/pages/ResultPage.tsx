@@ -75,25 +75,43 @@ const ResultPage: React.FC<ResultPageProps> = ({
     await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
-      const dataUrl = await htmlToImage.toPng(captureRef.current, {
+      const fileName = `military-savings-${userName || 'result'}.png`;
+      const blob = await htmlToImage.toBlob(captureRef.current, {
         backgroundColor: '#F8FAFF',
         style: {
           borderRadius: '0'
         }
       });
 
-      // Always download the image directly
-      const link = document.createElement('a');
-      link.download = `military-savings-${userName || 'result'}.png`;
-      link.href = dataUrl;
-      link.click();
+      if (!blob) throw new Error('이미지 생성에 실패했습니다.');
+
+      const file = new File([blob], fileName, { type: 'image/png' });
+
+      // Only use navigator.share for iOS devices (iPhone, iPad, iPod)
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: '장병내일준비적금 계산 결과',
+          text: '나의 예상 만기 수령액을 확인해보세요!'
+        });
+      } else {
+        // Direct download for Android, Desktop, and other environments
+        const dataUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrl;
+        link.click();
+        URL.revokeObjectURL(dataUrl);
+      }
       
       // Close modal after saving
       setIsNameModalOpen(false);
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
         console.error('Error saving image:', error);
-        alert('이미지 저장 중 오류가 발생했습니다.');
+        alert('이미지 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
       }
     } finally {
       setIsCapturing(false);
