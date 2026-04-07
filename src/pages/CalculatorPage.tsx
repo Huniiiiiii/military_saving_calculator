@@ -386,7 +386,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
           <button onClick={onBack} className="p-2 text-slate-900">
             <ChevronLeft size={28} strokeWidth={2.5} />
           </button>
-          <h1 className="text-[17px] font-bold text-slate-900">군적금 비교 계산기</h1>
+          <h1 className="text-[17px] font-bold text-slate-900">군적금 계산기</h1>
           <button onClick={onReset} className="text-[14px] font-bold text-blue-600 px-2">
             초기화
           </button>
