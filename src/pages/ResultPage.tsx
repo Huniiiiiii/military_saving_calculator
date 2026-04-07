@@ -82,34 +82,55 @@ const ResultPage: React.FC<ResultPageProps> = ({
         }
       });
 
+      // Always download the image directly
       const link = document.createElement('a');
       link.download = `military-savings-${userName || 'result'}.png`;
       link.href = dataUrl;
       link.click();
       
-      alert('이미지가 기기에 저장되었습니다.');
+      // Close modal after saving
+      setIsNameModalOpen(false);
     } catch (error) {
-      console.error('Error saving image:', error);
-      alert('이미지 저장 중 오류가 발생했습니다.');
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('Error saving image:', error);
+        alert('이미지 저장 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsCapturing(false);
     }
   };
 
-  const handleCopyLink = async () => {
+  const handleShareLink = async () => {
     if (import.meta.env.PROD) {
       ReactGA.event({
         category: 'User',
-        action: 'link_copy_click',
-        label: '링크 복사 버튼 클릭'
+        action: 'link_share_click',
+        label: '링크 공유 버튼 클릭'
       });
     }
 
+    const shareData = {
+      title: '장병내일준비적금 계산기',
+      text: '나에게 딱 맞는 장병내일준비적금 조합과 최종 수령액을 확인해보세요!',
+      url: window.location.origin
+    };
+
     try {
-      await navigator.clipboard.writeText(window.location.origin);
-      alert('서비스 링크가 클립보드에 복사되었습니다.');
-    } catch {
-      alert('링크 복사에 실패했습니다.');
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        throw new Error('Web Share API not supported');
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        // Fallback: Copy to clipboard
+        try {
+          await navigator.clipboard.writeText(window.location.origin);
+          alert('서비스 링크가 클립보드에 복사되었습니다.');
+        } catch {
+          alert('링크 복사에 실패했습니다.');
+        }
+      }
     }
   };
 
@@ -523,11 +544,11 @@ const ResultPage: React.FC<ResultPageProps> = ({
                     )}
                   </button>
                   <button
-                    onClick={handleCopyLink}
+                    onClick={handleShareLink}
                     className="w-full h-14 bg-slate-100 text-slate-900 rounded-2xl font-bold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                   >
                     <Share2 size={20} />
-                    서비스 링크 복사하기
+                    서비스 링크 공유하기
                   </button>
                 </div>
               </div>
