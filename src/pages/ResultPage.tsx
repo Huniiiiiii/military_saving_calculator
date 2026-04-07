@@ -1,37 +1,22 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2, Sparkles } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import data from '../data/data.json';
-
-interface PrimeRate {
-  id: string;
-  group: string;
-  label: string;
-  rate: number;
-  footnotes?: string[];
-}
-
-interface Bank {
-  id: string;
-  name: string;
-  link: string;
-  baseRates: { range: number[]; rate: number }[];
-  primeRates: PrimeRate[];
-  maxPrimeRate: number;
-}
-
-interface BoxState {
-  bankId: string;
-  amount: number;
-  selectedPrimeIds: string[];
-}
+import { calculateResult } from '../utils/savingsUtils';
+import type { BoxState } from '../utils/savingsUtils';
 
 interface ResultPageProps {
   selectedBranchId: string;
   months: number;
   box1: BoxState;
   box2: BoxState;
+  isRecommended?: boolean;
+  recommendationInfo?: {
+    preference: 'profit' | 'convenience';
+    housingBankName: string;
+    isSociallyVulnerable: boolean;
+  };
   onBack: () => void;
 }
 
@@ -40,84 +25,16 @@ const ResultPage: React.FC<ResultPageProps> = ({
   months,
   box1,
   box2,
+  isRecommended,
+  recommendationInfo,
   onBack,
 }) => {
-  const { globalConfig, banks, militaryBranches } = data;
+  const { globalConfig, militaryBranches } = data;
   const [expandedBankIdx, setExpandedBankIdx] = useState<number | null>(null);
   const currentBranch = militaryBranches.find(b => b.id === selectedBranchId) || militaryBranches[0];
 
-  const getFilteredPrimeRates = (bank: Bank, months: number) => {
-    const today = new Date();
-    const eventStartDate = new Date('2026-01-26');
-    const eventEndDate = new Date('2026-07-25');
-
-    return bank.primeRates.filter(prime => {
-      // KB Event Period Check
-      if (prime.id === 'kb_event') {
-        const isPeriodValid = today >= eventStartDate && today <= eventEndDate;
-        return isPeriodValid && months >= 3;
-      }
-      // KB Card Period Check
-      if (prime.id === 'kb_card') {
-        return months >= 6;
-      }
-      // KB 3-month Minimum Period Check
-      if (bank.id === 'kb' && (prime.id === 'kb_housing' || prime.id === 'kb_social_vulnerable')) {
-        return months >= 3;
-      }
-      // IBK 12-month Minimum Period Check
-      if (prime.id === 'ib_salary') {
-        return months >= 12;
-      }
-      // Hana 3-month Minimum Period Check
-      if (prime.id === 'hana_salary' || prime.id === 'hana_housing') {
-        return months >= 3;
-      }
-      // Woori 3-month Minimum Period Check
-      if (bank.id === 'woori' && (prime.id === 'woori_bank' || prime.id === 'woori_card')) {
-        return months >= 3;
-      }
-      return true;
-    });
-  };
-
-  const calculateResult = (boxState: BoxState) => {
-    const bank = banks.find(b => b.id === boxState.bankId) as Bank;
-    const baseRateObj = bank.baseRates.find(r => months >= r.range[0] && months <= r.range[1]);
-    const baseRate = baseRateObj ? baseRateObj.rate : 0.05;
-    
-    const filteredPrimes = getFilteredPrimeRates(bank, months);
-    const selectedPrimes = filteredPrimes.filter(p => boxState.selectedPrimeIds.includes(p.id));
-    const totalSelectedPrime = selectedPrimes.reduce((sum, p) => sum + p.rate, 0);
-    const appliedPrimeRate = Math.min(totalSelectedPrime, bank.maxPrimeRate);
-    
-    let bankInterest = 0;
-    for (let i = 1; i <= months; i++) {
-      const remainingMonths = months - i + 1;
-      bankInterest += boxState.amount * (remainingMonths / 12) * (baseRate + appliedPrimeRate);
-    }
-    bankInterest = Math.floor(bankInterest);
-    const principal = boxState.amount * months;
-    const matchingSupport = Math.floor(principal * globalConfig.matchingSupportRate);
-    const totalMaturity = principal + bankInterest + matchingSupport;
-
-    return { 
-      principal, 
-      bankInterest, 
-      matchingSupport, 
-      total: totalMaturity, 
-      baseRate,
-      primeRate: appliedPrimeRate,
-      bankName: bank.name,
-      bankLink: bank.link,
-      selectedPrimes,
-      isCapped: totalSelectedPrime > bank.maxPrimeRate,
-      monthlyAmount: boxState.amount
-    };
-  };
-
-  const res1 = calculateResult(box1);
-  const res2 = calculateResult(box2);
+  const res1 = calculateResult(box1, months);
+  const res2 = calculateResult(box2, months);
   const totalPrincipal = res1.principal + res2.principal;
   const totalInterest = res1.bankInterest + res2.bankInterest;
   const totalMatching = res1.matchingSupport + res2.matchingSupport;
@@ -144,9 +61,44 @@ const ResultPage: React.FC<ResultPageProps> = ({
         </header>
 
         <div className="flex-1 px-4 pt-4 pb-20">
-          <p className="text-[10px] font-bold text-slate-400 mb-2 ml-1">
-            내용은 2026.04.01. 기준이에요
-          </p>
+          <div className="flex justify-between items-center mb-4 ml-1">
+            <p className="text-[10px] font-bold text-slate-400">
+              내용은 2026.04.01. 기준이에요
+            </p>
+            {!isRecommended && (
+              <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
+                📅 {months}개월 납입 조건
+              </div>
+            )}
+          </div>
+
+          {/* Recommended Badge */}
+          {isRecommended && (
+            <div className="mb-6">
+              <div className="mb-2.5 bg-blue-600 rounded-xl p-3 flex items-center gap-2 text-white shadow-lg shadow-blue-200">
+                <Sparkles size={18} />
+                <span className="text-xs font-black">AI 기반 최적의 조합을 찾았습니다</span>
+              </div>
+              {recommendationInfo && (
+                <div className="flex flex-wrap gap-1.5 ml-1">
+                  <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100">
+                    📅 {months}개월 납입
+                  </div>
+                  <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100">
+                    {recommendationInfo.preference === 'profit' ? '💰 수익 우선' : '📱 편의 우선'}
+                  </div>
+                  <div className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-slate-200">
+                    🏠 청약: {recommendationInfo.housingBankName}
+                  </div>
+                  {recommendationInfo.isSociallyVulnerable && (
+                    <div className="bg-purple-50 text-purple-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-purple-100">
+                      💜 기초생활수급자 우대 적용
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Main Result Card */}
           <div className="bg-[#1A5CFF] rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-200/50 mb-10 relative overflow-hidden">

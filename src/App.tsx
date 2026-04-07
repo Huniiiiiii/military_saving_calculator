@@ -6,8 +6,10 @@ import Onboarding from './pages/Onboarding';
 import InputPage from './pages/InputPage';
 import CalculatorPage from './pages/CalculatorPage';
 import ResultPage from './pages/ResultPage';
+import RecommendationPage from './pages/RecommendationPage';
+import type { RecommendationResult } from './pages/RecommendationPage';
 
-// Initialize GA4 with your Measurement ID (Replace with yours)
+// Initialize GA4 with your Measurement ID
 if (import.meta.env.PROD) {
   ReactGA.initialize('G-3K28LXY5ZB');
 }
@@ -16,7 +18,17 @@ const App: React.FC = () => {
   const { militaryBranches } = data;
 
   // --- States ---
-  const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result'>('onboarding');
+  const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result' | 'recommendation'>('onboarding');
+  const [selectedBranchId, setSelectedBranchId] = useState(militaryBranches[0].id);
+  const [months, setMonths] = useState(militaryBranches[0].maxMonths);
+  const [box1, setBox1] = useState({ bankId: '', amount: 300000, selectedPrimeIds: [] as string[] });
+  const [box2, setBox2] = useState({ bankId: '', amount: 250000, selectedPrimeIds: [] as string[] });
+  const [isRecommended, setIsRecommended] = useState(false);
+  const [recommendationInfo, setRecommendationInfo] = useState({
+    preference: 'profit' as 'profit' | 'convenience',
+    housingBankName: '',
+    isSociallyVulnerable: false
+  });
 
   // Track page views when step changes
   useEffect(() => {
@@ -24,11 +36,6 @@ const App: React.FC = () => {
       ReactGA.send({ hitType: 'pageview', page: `/${step}`, title: step });
     }
   }, [step]);
-
-  const [selectedBranchId, setSelectedBranchId] = useState(militaryBranches[0].id);
-  const [months, setMonths] = useState(militaryBranches[0].maxMonths);
-  const [box1, setBox1] = useState({ bankId: '', amount: 300000, selectedPrimeIds: [] as string[] });
-  const [box2, setBox2] = useState({ bankId: '', amount: 250000, selectedPrimeIds: [] as string[] });
 
   // --- Handlers ---
   const handleBranchChange = (id: string) => {
@@ -46,6 +53,18 @@ const App: React.FC = () => {
     setMonths(clampedMonths);
   };
 
+  const handleRecommendationComplete = (result: RecommendationResult) => {
+    setBox1(result.box1);
+    setBox2(result.box2);
+    setRecommendationInfo({
+      preference: result.preference,
+      housingBankName: result.housingBankName,
+      isSociallyVulnerable: result.isSociallyVulnerable
+    });
+    setIsRecommended(true);
+    setStep('result');
+  };
+
   return (
     <AnimatePresence mode="wait">
       {step === 'onboarding' ? (
@@ -58,7 +77,15 @@ const App: React.FC = () => {
           months={months}
           onMonthsChange={handleMonthsChange}
           onNext={() => setStep('calculator')}
+          onRecommend={() => setStep('recommendation')}
           onBack={() => setStep('onboarding')}
+        />
+      ) : step === 'recommendation' ? (
+        <RecommendationPage
+          key="recommendation"
+          months={months}
+          onBack={() => setStep('input')}
+          onComplete={handleRecommendationComplete}
         />
       ) : step === 'calculator' ? (
         <CalculatorPage
@@ -73,8 +100,12 @@ const App: React.FC = () => {
           onReset={() => {
             setBox1({ bankId: '', amount: 300000, selectedPrimeIds: [] });
             setBox2({ bankId: '', amount: 250000, selectedPrimeIds: [] });
+            setIsRecommended(false);
           }}
-          onShowDetails={() => setStep('result')}
+          onShowDetails={() => {
+            setIsRecommended(false);
+            setStep('result');
+          }}
         />
       ) : (
         <ResultPage
@@ -83,7 +114,12 @@ const App: React.FC = () => {
           months={months}
           box1={box1}
           box2={box2}
-          onBack={() => setStep('calculator')}
+          isRecommended={isRecommended}
+          recommendationInfo={recommendationInfo}
+          onBack={() => {
+            if (isRecommended) setStep('input');
+            else setStep('calculator');
+          }}
         />
       )}
     </AnimatePresence>

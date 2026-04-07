@@ -9,6 +9,7 @@ interface InputPageProps {
   months: number;
   onMonthsChange: (val: number) => void;
   onNext: () => void;
+  onRecommend: () => void;
   onBack: () => void;
 }
 
@@ -18,6 +19,7 @@ const InputPage: React.FC<InputPageProps> = ({
   months,
   onMonthsChange,
   onNext,
+  onRecommend,
   onBack
 }) => {
   const { militaryBranches } = data;
@@ -93,13 +95,20 @@ const InputPage: React.FC<InputPageProps> = ({
         </div>
 
         {/* Bottom CTA Button */}
-        <div className="w-full p-5 pb-8">
+        <div className="w-full p-5 pb-8 space-y-3">
+          <button
+            onClick={onRecommend}
+            disabled={months <= 0}
+            className="w-full h-14 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-black text-base shadow-sm hover:bg-blue-50 transition-all active:scale-[0.98] disabled:opacity-30"
+          >
+            은행 추천받기 ✨
+          </button>
           <button
             onClick={onNext}
             disabled={months <= 0}
             className="w-full h-14 bg-[#1A5CFF] text-white rounded-xl font-black text-base shadow-lg hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
           >
-            계산하러가기
+            직접 계산하기
           </button>
         </div>
       </div>

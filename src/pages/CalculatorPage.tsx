@@ -3,28 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import data from '../data/data.json';
-
-interface PrimeRate {
-  id: string;
-  group: string;
-  label: string;
-  rate: number;
-  footnotes?: string[];
-}
-
-interface Bank {
-  id: string;
-  name: string;
-  baseRates: { range: number[]; rate: number }[];
-  primeRates: PrimeRate[];
-  maxPrimeRate: number;
-}
-
-interface BoxState {
-  bankId: string;
-  amount: number;
-  selectedPrimeIds: string[];
-}
+import { calculateResult, getFilteredPrimeRates } from '../utils/savingsUtils';
+import type { BoxState, Bank, CalcResult } from '../utils/savingsUtils';
 
 interface CalculatorPageProps {
   selectedBranchId: string;
@@ -36,15 +16,6 @@ interface CalculatorPageProps {
   onBack: () => void;
   onReset: () => void;
   onShowDetails: () => void;
-}
-
-interface CalcResult {
-  principal: number;
-  bankInterest: number;
-  matchingSupport: number;
-  total: number;
-  baseRate: string;
-  primeRate: string;
 }
 
 const CalculatorPage: React.FC<CalculatorPageProps> = ({
@@ -71,92 +42,13 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     );
   };
 
-  const getFilteredPrimeRates = (bank: Bank, months: number) => {
-    const today = new Date();
-    const eventStartDate = new Date('2026-01-26');
-    const eventEndDate = new Date('2026-07-25');
-
-    return bank.primeRates.filter(prime => {
-      // KB Event Period Check
-      if (prime.id === 'kb_event') {
-        const isPeriodValid = today >= eventStartDate && today <= eventEndDate;
-        return isPeriodValid && months >= 3;
-      }
-      // KB Card Period Check
-      if (prime.id === 'kb_card') {
-        return months >= 6;
-      }
-      // KB 3-month Minimum Period Check
-      if (bank.id === 'kb' && (prime.id === 'kb_housing' || prime.id === 'kb_social_vulnerable')) {
-        return months >= 3;
-      }
-      // IBK 12-month Minimum Period Check
-      if (prime.id === 'ib_salary') {
-        return months >= 12;
-      }
-      // Hana 3-month Minimum Period Check
-      if (prime.id === 'hana_salary' || prime.id === 'hana_housing') {
-        return months >= 3;
-      }
-      // Woori 3-month Minimum Period Check
-      if (bank.id === 'woori' && (prime.id === 'woori_bank' || prime.id === 'woori_card')) {
-        return months >= 3;
-      }
-      return true;
-    });
-  };
-
-  const calculateResult = (boxState: BoxState): CalcResult => {
-    const bank = banks.find(b => b.id === boxState.bankId) as Bank;
-    if (!bank) {
-      const principal = boxState.amount * months;
-      const matchingSupport = Math.floor(principal * globalConfig.matchingSupportRate);
-      return { 
-        principal, 
-        bankInterest: 0, 
-        matchingSupport, 
-        total: principal + matchingSupport, 
-        baseRate: "0.0",
-        primeRate: "0.0"
-      };
-    }
-
-    const baseRateObj = bank.baseRates.find(r => months >= r.range[0] && months <= r.range[1]);
-    const baseRate = baseRateObj ? baseRateObj.rate : 0.05;
-    
-    const filteredPrimes = getFilteredPrimeRates(bank, months);
-    const totalSelectedPrime = filteredPrimes
-      .filter(p => boxState.selectedPrimeIds.includes(p.id))
-      .reduce((sum, p) => sum + p.rate, 0);
-    const appliedPrimeRate = Math.min(totalSelectedPrime, bank.maxPrimeRate);
-    
-    let bankInterest = 0;
-    for (let i = 1; i <= months; i++) {
-      const remainingMonths = months - i + 1;
-      bankInterest += boxState.amount * (remainingMonths / 12) * (baseRate + appliedPrimeRate);
-    }
-    bankInterest = Math.floor(bankInterest);
-    const principal = boxState.amount * months;
-    const matchingSupport = Math.floor(principal * globalConfig.matchingSupportRate);
-    const totalMaturity = principal + bankInterest + matchingSupport;
-
-    return { 
-      principal, 
-      bankInterest, 
-      matchingSupport, 
-      total: totalMaturity, 
-      baseRate: (baseRate * 100).toFixed(1),
-      primeRate: (appliedPrimeRate * 100).toFixed(1)
-    };
-  };
-
-  const res1 = calculateResult(box1);
-  const res2 = calculateResult(box2);
+  const res1 = calculateResult(box1, months);
+  const res2 = calculateResult(box2, months);
 
   const formatKRW = (val: number) => new Intl.NumberFormat('ko-KR').format(val);
 
   const getSelectedGroups = (boxState: BoxState) => {
-    const bank = banks.find(b => b.id === boxState.bankId);
+    const bank = banks.find(b => b.id === boxState.bankId) as Bank | undefined;
     if (!bank) return [];
     return bank.primeRates
       .filter(p => boxState.selectedPrimeIds.includes(p.id))
@@ -213,7 +105,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
           </span>
           <div className="text-right">
             <span className={`text-[12px] font-bold ${textColor}`}>
-              {bank ? `기본 ${res.baseRate}% + 우대 ${res.primeRate}%` : '은행을 선택해주세요'}
+              {bank ? `기본 ${(res.baseRate * 100).toFixed(1)}% + 우대 ${(res.primeRate * 100).toFixed(1)}%` : '은행을 선택해주세요'}
             </span>
           </div>
         </div>
