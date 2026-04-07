@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactGA from 'react-ga4';
-import data from '../data/data.json';
+import { data } from '../data/data';
 import { calculateResult, getFilteredPrimeRates } from '../utils/savingsUtils';
 import type { BoxState, Bank, CalcResult } from '../utils/savingsUtils';
 
@@ -111,7 +111,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
         </div>
 
         <div className="mb-4 relative">
-          <p className="text-slate-400 text-[10px] font-medium mb-1.5 ml-1">저축 은행 선택</p>
+          <p className="text-slate-400 text-[10px] font-medium mb-1.5 ml-1">저축 은행</p>
           <div className="relative group">
             {bank && (
               <div className="absolute inset-0 flex items-center px-3 pointer-events-none text-base font-bold text-slate-800 z-10">
@@ -128,13 +128,13 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   : 'bg-purple-50/30 border-purple-100 hover:border-purple-300 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-100/50'
                 }`}
             >
-              <option value="" disabled>은행을 선택하세요</option>
+              <option value="" disabled>은행 선택</option>
               {banks.map(b => {
-                const isRecommended = ['hana', 'kb', 'shinhan', 'ibk'].includes(b.id);
+                
                 const maxPrimePct = (b.maxPrimeRate * 100).toFixed(1);
                 return (
                   <option key={b.id} value={b.id} disabled={b.id === otherBankId} className="text-slate-800">
-                    {b.name}{isRecommended ? '(추천)' : ''} [최대 우대 {maxPrimePct}%] {b.id === otherBankId ? '(선택됨)' : ''}
+                    {b.name} [최대 우대 {maxPrimePct}%] {b.id === otherBankId ? '(선택됨)' : ''}
                   </option>
                 );
               })}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, Sparkles, Building2, UserCheck, Zap, HelpCircle } from 'lucide-react';
 import ReactGA from 'react-ga4';
-import data from '../data/data.json';
+import { data } from '../data/data';
 import { calculateResult, getFilteredPrimeRates } from '../utils/savingsUtils';
 import type { BoxState, Bank } from '../utils/savingsUtils';
 

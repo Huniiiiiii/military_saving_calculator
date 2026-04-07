@@ -1,4 +1,4 @@
-{
+export const data = {
   "version": "2026-03-31",
   "globalConfig": {
     "maxTotalMonthlyDeposit": 550000,
@@ -13,6 +13,33 @@
     { "id": "alternative", "name": "대체복무요원", "maxMonths": 24 }
   ],
   "banks": [
+{
+      "id": "kb",   
+      "name": "KB국민은행",
+      "link": "https://obank.kbstar.com/quics?page=C016613&cc=b061496:b061645&isNew=N&prcode=DP01000939#loading",
+      "baseRates": [
+        { "range": [1, 11], "rate": 0.040 },
+        { "range": [12, 14], "rate": 0.045 },
+        { "range": [15, 24], "rate": 0.050 }
+      ],
+      "primeRates": [
+        { 
+	  "id": "kb_housing", "group": "housing", "label": "주택청약", "rate": 0.010,
+	  "footnotes": ["적금 만기일의 전전월 말일을 기준으로, 고객이 KB국민은행 주택청약종합 저축(청년 주택드림 청약통장 포함) 계좌를 보유한 경우"]
+	},
+	{ 
+          "id": "kb_card", "group": "kbcard", "label": "KB카드사용 6개월", "rate": 0.005, 
+          "footnotes": ["적금 신규월 초일부터 만기일 전전월 말일까지 본인명의 KB국민은행 입출금통장에서 KB국민(신용/체크/BC)카드 결제대금출금(현금서비스 포함)이 발생한 월이 6개월 이상인 경우"]
+        },
+	{ "id": "kb_social_vulnerable", "group": "kb_social_vulnerable", "label": "기초생활수급자", "rate": 0.030,
+	  "footnotes": ["적금 만기일의 전전월 말일을 기준으로 본인 명의 ‘수급자증명서’ 또는 ‘사회보장급여 중지통지서(중지사유:군입대)’를 영업점에 제출한 경우"]
+	},
+	{ "id": "kb_event", "group": "kb_event", "label": "KB Youth Club(밀리터리클럽)가입", "rate": 0.010,
+	  "footnotes": ["2026.1.26~2026.7.25 기간동안 KB장병내일준비적금을 가입한 고객 중 적금 만기일의 전전월 말일을 기준으로 KB Youth Club(밀리터리클럽)에 가입되어 있는 경우"]
+	}
+      ],
+      "maxPrimeRate": 0.055
+    },
     {
       "id": "hana",
       "name": "하나은행",
@@ -46,60 +73,7 @@
       ],
       "maxPrimeRate": 0.052
     },
-    {
-      "id": "kb",   
-      "name": "KB국민은행",
-      "link": "https://obank.kbstar.com/quics?page=C016613&cc=b061496:b061645&isNew=N&prcode=DP01000939#loading",
-      "baseRates": [
-        { "range": [1, 11], "rate": 0.040 },
-        { "range": [12, 14], "rate": 0.045 },
-        { "range": [15, 24], "rate": 0.050 }
-      ],
-      "primeRates": [
-        { 
-	  "id": "kb_housing", "group": "housing", "label": "주택청약", "rate": 0.010,
-	  "footnotes": ["적금 만기일의 전전월 말일을 기준으로, 고객이 KB국민은행 주택청약종합 저축(청년 주택드림 청약통장 포함) 계좌를 보유한 경우"]
-	},
-	{ 
-          "id": "kb_card", "group": "kbcard", "label": "KB카드사용 6개월", "rate": 0.005, 
-          "footnotes": ["적금 신규월 초일부터 만기일 전전월 말일까지 본인명의 KB국민은행 입출금통장에서 KB국민(신용/체크/BC)카드 결제대금출금(현금서비스 포함)이 발생한 월이 6개월 이상인 경우"]
-        },
-	{ "id": "kb_social_vulnerable", "group": "kb_social_vulnerable", "label": "기초생활수급자", "rate": 0.030,
-	  "footnotes": ["적금 만기일의 전전월 말일을 기준으로 본인 명의 ‘수급자증명서’ 또는 ‘사회보장급여 중지통지서(중지사유:군입대)’를 영업점에 제출한 경우"]
-	},
-	{ "id": "kb_event", "group": "kb_event", "label": "KB Youth Club(밀리터리클럽)가입", "rate": 0.010,
-	  "footnotes": ["2026.1.26~2026.7.25 기간동안 KB장병내일준비적금을 가입한 고객 중 적금 만기일의 전전월 말일을 기준으로 KB Youth Club(밀리터리클럽)에 가입되어 있는 경우"]
-	}
-      ],
-      "maxPrimeRate": 0.055
-    },
-    {
-      "id": "shinhan",
-      "name": "신한은행",
-      "link": "https://bank.shinhan.com/index.jsp#020102010110",
-      "baseRates": [
-        { "range": [1, 5], "rate": 0.035 },
-        { "range": [6, 11], "rate": 0.040 },
-	{ "range": [12, 14], "rate": 0.045 },
-        { "range": [15, 24], "rate": 0.050 }
-      ],
-      "primeRates": [
-	{ 
-          "id": "sh_housing", "group": "housing", "label": "주택청약", "rate": 0.010, 
-          "footnotes": ["신한은행 ‘주택청약종합저축'(청년우대형 주택청약종합저축포함) 만기일 전일까지 유지한 경우"]
-        },
-        { 
-          "id": "sh_bank", "group": "sh_bank", "label": "매달 신한은행 계좌 50만원이상 입금", "rate": 0.010, 
-          "footnotes": ["예금주의 신한은행 입출금통장에 건별 50만원 이상 입금된 월에 이 예금에 입금한 금액에 대해 우대이자율 제공"]
-        },
-	{ 
-          "id": "sh_social_vulnerable", "group": "sh_social_vulnerable", "label": "기초생활수급자", "rate": 0.030, 
-          "footnotes": ["적금 만기일이 속한 달의 전전월까지 기초생활수급자로 본인 명의 ‘수급자증명서’ 또는 ‘사회보장급여중지통지서(통지사유 : 군입대)’를 제출한 경우"]
-        }
-    ],
-      "maxPrimeRate": 0.050
-    },
-    {
+{
       "id": "ibk",
       "name": "IBK기업은행",
       "link": "https://mybank.ibk.co.kr/uib/jsp/guest/ntr/ntr70/ntr7010/PNTR701000_i2.jsp?lncd=01&grcd=21&tmcd=121&pdcd=0112#_dummy",
@@ -139,13 +113,40 @@
       "maxPrimeRate": 0.052
     },
     {
+      "id": "shinhan",
+      "name": "신한은행",
+      "link": "https://bank.shinhan.com/index.jsp#020102010110",
+      "baseRates": [
+        { "range": [1, 5], "rate": 0.035 },
+        { "range": [6, 11], "rate": 0.040 },
+	{ "range": [12, 14], "rate": 0.045 },
+        { "range": [15, 24], "rate": 0.050 }
+      ],
+      "primeRates": [
+	{ 
+          "id": "sh_housing", "group": "housing", "label": "주택청약", "rate": 0.010, 
+          "footnotes": ["신한은행 ‘주택청약종합저축'(청년우대형 주택청약종합저축포함) 만기일 전일까지 유지한 경우"]
+        },
+        { 
+          "id": "sh_bank", "group": "sh_bank", "label": "매달 신한은행 계좌 50만원이상 입금", "rate": 0.010, 
+          "footnotes": ["예금주의 신한은행 입출금통장에 건별 50만원 이상 입금된 월에 이 예금에 입금한 금액에 대해 우대이자율 제공"]
+        },
+	{ 
+          "id": "sh_social_vulnerable", "group": "sh_social_vulnerable", "label": "기초생활수급자", "rate": 0.030, 
+          "footnotes": ["적금 만기일이 속한 달의 전전월까지 기초생활수급자로 본인 명의 ‘수급자증명서’ 또는 ‘사회보장급여중지통지서(통지사유 : 군입대)’를 제출한 경우"]
+        }
+    ],
+      "maxPrimeRate": 0.050
+    },
+    /*
+    {
       "id": "woori",
       "name": "우리은행",
       "link": "https://spot.wooribank.com/pot/Dream?withyou=PODEP0019&cc=c007095:c009166;c012263:c012399&PRD_CD=P010002283&PRD_YN=Y",
       "baseRates": [
         { "range": [1, 5], "rate": 0.037 },
         { "range": [6, 11], "rate": 0.040 },
-	{ "range": [12, 14], "rate": 0.043 },
+	      { "range": [12, 14], "rate": 0.043 },
         { "range": [15, 24], "rate": 0.050 }
       ],
       "primeRates": [
@@ -159,16 +160,17 @@
            "우리은행 상품ㆍ서비스 마케팅 동의항목 중 전화(휴대폰), SMS 항목 중 하나 이상을 동의한 후 만기 해지시점까지 유지한 경우"
           ]
         },
-	{ 
+	      { 
           "id": "woori_card", "group": "woori_card", "label": "우리은행카드 매달 1회이상 사용", "rate": 0.002, 
           "footnotes": ["신규월 및 만기월을 제외한 가입기간 동안 우리은행 입출식 계좌에서 우리카드사 신용/체크카드 결제금액이 매월 출금된 실적 보유한 경우"]
         },
-	{ 
+	      { 
           "id": "woori_bank", "group": "woori_bank", "label": "우리은행 입출금계좌에서 적금계좌로 자동이체", "rate": 0.004, 
           "footnotes": ["우리은행 입출식 계좌에서 매월 자동이체를 통해 신규월 및 만기월을 제외한 가입기간의 1/2기간 이상 이 적금으로 적립한 경우"]
         }
       ],
       "maxPrimeRate": 0.010
     }
+    */
   ]
 }

@@ -1,4 +1,4 @@
-import data from '../data/data.json';
+import { data } from '../data/data';
 
 export interface PrimeRate {
   id: string;
@@ -41,13 +41,13 @@ const { globalConfig, banks } = data;
 
 export const getFilteredPrimeRates = (bank: Bank, months: number) => {
   const today = new Date();
-  const eventStartDate = new Date('2026-01-26');
-  const eventEndDate = new Date('2026-07-25');
+  const kbeventStartDate = new Date('2026-01-26');
+  const kbeventEndDate = new Date('2026-07-25');
 
   return bank.primeRates.filter(prime => {
     // KB Event Period Check
     if (prime.id === 'kb_event') {
-      const isPeriodValid = today >= eventStartDate && today <= eventEndDate;
+      const isPeriodValid = today >= kbeventStartDate && today <= kbeventEndDate;
       return isPeriodValid && months >= 3;
     }
     // KB Card Period Check
@@ -64,10 +64,6 @@ export const getFilteredPrimeRates = (bank: Bank, months: number) => {
     }
     // Hana 3-month Minimum Period Check
     if (prime.id === 'hana_salary' || prime.id === 'hana_housing') {
-      return months >= 3;
-    }
-    // Woori 3-month Minimum Period Check
-    if (bank.id === 'woori' && (prime.id === 'woori_bank' || prime.id === 'woori_card')) {
       return months >= 3;
     }
     return true;

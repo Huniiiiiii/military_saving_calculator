@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
-import data from '../data/data.json';
+import { data } from '../data/data';
 
 interface InputPageProps {
   selectedBranchId: string;

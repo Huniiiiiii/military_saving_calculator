@@ -80,3 +80,4 @@ npm run build
 
 ---
 본 프로젝트는 국군 장병들의 효율적인 자산 형성을 돕기 위해 제작되었습니다.
+금리 자료 바로 확인 링크: https://portal.kfb.or.kr/compare/receiving_army_2.php

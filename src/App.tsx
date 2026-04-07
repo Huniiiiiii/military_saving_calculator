@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import data from './data/data.json';
+import { data } from './data/data';
 import { AnimatePresence } from 'framer-motion';
 import ReactGA from 'react-ga4';
 import Onboarding from './pages/Onboarding';
@@ -39,7 +39,7 @@ const App: React.FC = () => {
 
   // --- Handlers ---
   const handleBranchChange = (id: string) => {
-    const branch = militaryBranches.find(b => b.id === id);
+    const branch = data.militaryBranches.find(b => b.id === id);
     if (branch) {
       setSelectedBranchId(id);
       setMonths(branch.maxMonths);
@@ -47,7 +47,7 @@ const App: React.FC = () => {
   };
 
   const handleMonthsChange = (val: number) => {
-    const branch = militaryBranches.find(b => b.id === selectedBranchId);
+    const branch = data.militaryBranches.find(b => b.id === selectedBranchId);
     const maxMonths = branch ? branch.maxMonths : 24;
     const clampedMonths = Math.max(0, Math.min(val, maxMonths));
     setMonths(clampedMonths);

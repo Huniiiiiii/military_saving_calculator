@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2, Sparkles, Share2, Download, X } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import * as htmlToImage from 'html-to-image';
-import data from '../data/data.json';
+import { data } from '../data/data';
 import { calculateResult } from '../utils/savingsUtils';
 import type { BoxState } from '../utils/savingsUtils';
 
