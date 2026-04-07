@@ -24,21 +24,35 @@
 C:\university_life\군대\military savings calculator\
 ├── public/                 # 정적 자산 (파비콘, SEO 관련 파일)
 ├── src/
-│   ├── assets/             # 이미지 및 미디어 파일
+│   ├── assets/             # 이미지 및 미디어 파일 (온보딩 캐릭터 등)
 │   ├── data/
-│   │   └── data.json       # 은행별 금리 및 군별 복무 기간 데이터
+│   │   └── data.json       # 은행별 금리, 우대 조건 및 군별 복무 기간 데이터
 │   ├── pages/
-│   │   ├── Onboarding.tsx  # 온보딩 화면
-│   │   ├── InputPage.tsx   # 군 정보 및 납입 계획 입력 화면
-│   │   ├── CalculatorPage.tsx # 은행 선택 및 금리 설정 화면
-│   │   └── ResultPage.tsx  # 최종 계산 결과 화면
+│   │   ├── Onboarding.tsx  # 서비스 소개 및 시작 화면
+│   │   ├── InputPage.tsx   # 입대일, 복무 군종 등 사용자 정보 입력 화면
+│   │   ├── RecommendationPage.tsx # 사용자 성향 기반 최적 은행 조합 분석 화면 (AI 추천)
+│   │   ├── CalculatorPage.tsx # 직접 은행을 선택하고 금리를 설정하는 화면
+│   │   └── ResultPage.tsx  # 최종 만기 수령액 및 상세 계산 결과 화면
+│   ├── utils/
+│   │   └── savingsUtils.ts # 복리 이자 계산, 매칭지원금 산출 및 추천 알고리즘 로직
 │   ├── App.tsx             # 라우팅 및 전역 상태 관리
-│   ├── main.tsx            # 엔트리 포인트
-│   └── index.css           # 글로벌 스타일 (Tailwind CSS 포함)
-├── tailwind.config.js      # Tailwind CSS 설정
-├── vite.config.ts          # Vite 빌드 및 개발 설정
-└── tsconfig.json           # TypeScript 설정
+│   ├── App.css             # 앱 전용 스타일
+│   ├── main.tsx            # React 엔트리 포인트
+│   └── index.css           # 글로벌 스타일 (Tailwind CSS 설정 포함)
+├── tailwind.config.js      # Tailwind CSS 디자인 시스템 설정
+├── vite.config.ts          # Vite 빌드 최적화 및 서버 설정
+└── tsconfig.json           # TypeScript 환경 설정
 ```
+
+## 🧠 주요 로직 및 알고리즘
+
+### 1. AI 최적 조합 추천 (`RecommendationPage.tsx`)
+단순한 계산을 넘어, 사용자의 주택청약 보유 여부, 기초생활수급자 해당 여부, 그리고 '수익 우선' vs '편의 우선' 성향을 분석하여 **시중 14개 은행의 데이터를 바탕으로 최적의 2개 은행 조합**을 자동으로 찾아줍니다.
+
+### 2. 정밀한 이자 계산 (`savingsUtils.ts`)
+- **월 단위 단리 계산**: 적금 특성에 맞게 납입 회차별 잔존 기간을 계산하여 정밀한 이자를 산출합니다.
+- **매칭지원금 계산**: 2025년/2026년 정부 정책에 따른 매칭지원금(원리금의 100%)을 자동 합산합니다.
+- **우대 금리 필터링**: 가입 기간(개월 수)에 따라 가입 가능한 우대 금리 항목을 동적으로 필터링하여 정확한 금리를 적용합니다.
 
 ## 📊 데이터 구성 (`data.json`)
 

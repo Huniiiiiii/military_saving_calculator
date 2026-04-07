@@ -250,7 +250,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
             <div className="absolute inset-0 flex items-center justify-center"><Sparkles className="text-blue-500 animate-pulse" size={32} /></div>
           </div>
         </motion.div>
-        <h2 className="text-2xl font-black text-slate-900 mb-4 break-keep">사용자의 조건으로<br/>14개 은행 데이터를 분석 중입니다...</h2>
+        <h2 className="text-2xl font-black text-slate-900 mb-4 break-keep">사용자의 조건으로<br/>주요 은행 데이터를 분석 중입니다...</h2>
         <p className="text-slate-400 font-medium animate-pulse">최적의 이자 수익 조합을 계산하고 있어요</p>
       </div>
     );
