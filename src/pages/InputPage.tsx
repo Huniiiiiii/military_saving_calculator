@@ -101,7 +101,7 @@ const InputPage: React.FC<InputPageProps> = ({
             disabled={months <= 0}
             className="w-full h-14 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-black text-base shadow-sm hover:bg-blue-50 transition-all active:scale-[0.98] disabled:opacity-30"
           >
-            은행 추천받기 ✨
+            은행 추천받기
           </button>
           <button
             onClick={onNext}

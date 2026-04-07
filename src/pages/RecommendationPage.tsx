@@ -194,8 +194,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 2,
-      title: "어느 은행에서\n사용 중인가요?",
-      description: "해당 은행을 이용하면 높은 우대 금리를 받을 수 있어요.",
+      title: "청약 통장이 있는\n은행을 선택해주세요",
+      description: "해당 은행 이용 시 우대 금리 혜택이 있어요.",
       icon: <Building2 className="text-blue-500" size={24} />,
       content: (
         <div className="grid grid-cols-1 gap-3">
@@ -210,7 +210,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     {
       id: 3,
       title: "기초생활수급자\n대상자이신가요?",
-      description: "증빙이 가능한 경우 압도적인 우대 금리가 적용돼요.",
+      description: "증빙이 가능한 경우 높은 우대 금리가 적용돼요.",
       icon: <UserCheck className="text-purple-500" size={24} />,
       content: (
         <div className="flex flex-col gap-4">
