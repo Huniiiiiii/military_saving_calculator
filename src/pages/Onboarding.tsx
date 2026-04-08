@@ -6,9 +6,12 @@ import onboardingCh from '../assets/onboarding_ch.webp';
 
 interface OnboardingProps {
   onStart: () => void;
+  onAdmin: () => void;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
+  const [clickCount, setClickCount] = React.useState(0);
+
   const handleStart = () => {
     if (import.meta.env.PROD) {
       ReactGA.event({
@@ -18,6 +21,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
       });
     }
     onStart();
+  };
+
+  const handleAdminTrigger = () => {
+    const nextCount = clickCount + 1;
+    if (nextCount >= 5) {
+      onAdmin();
+      setClickCount(0);
+    } else {
+      setClickCount(nextCount);
+    }
   };
 
   return (
@@ -50,7 +63,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
           initial={{ y: 100 }}
           animate={{ y: 0 }}
           transition={{ delay: 0.5, type: "spring", damping: 20 }}
-          className="w-full bg-white rounded-t-[2rem] sm:rounded-[2.5rem] sm:mb-10 p-6 pt-8 shadow-[0_-15px_30px_rgba(0,0,0,0.05)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center z-30"
+          className="w-full bg-white rounded-t-[2rem] sm:rounded-[2.5rem] sm:mb-10 px-6 pt-8 pb-2 shadow-[0_-15px_30px_rgba(0,0,0,0.05)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center z-30"
         >
           <div className="w-full text-center">
             <h1 className="text-xl font-black text-slate-700 leading-tight mb-1 tracking-tighter">
@@ -70,7 +83,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
               ].map((item, i) => (
                 <div key={i} className="flex flex-col items-center">
                   <span className="text-[12px] font-black text-slate-800">{item.label}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter text-slate-400">{item.sub}</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{item.sub}</span>
                 </div>
               ))}
             </div>
@@ -92,6 +105,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
               <span className="text-[11px] font-bold border-b border-slate-300">장병내일준비적금이란?</span>
               <ChevronRight size={12} strokeWidth={3} />
             </a>
+
+            <p 
+              onClick={handleAdminTrigger}
+              className="mt-2 text-[10px] font-bold text-slate-200 uppercase tracking-widest cursor-default select-none pb-2"
+            >
+              © 2026 군적금 똑똑이
+            </p>
           </div>
         </motion.div>
       </div>

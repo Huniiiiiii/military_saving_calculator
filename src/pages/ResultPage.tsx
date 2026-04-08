@@ -3,13 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2, Sparkles, Share2, Download, X, CreditCard, Home, Zap, Calendar } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import * as htmlToImage from 'html-to-image';
-import { data } from '../data/data';
+import type { GlobalData } from '../App';
 import { calculateResult } from '../utils/savingsUtils';
 import type { BoxState } from '../utils/savingsUtils';
 
 interface ResultPageProps {
+  data: GlobalData;
   selectedBranchId: string;
   months: number;
+  openingDate: Date;
   box1: BoxState;
   box2: BoxState;
   isRecommended?: boolean;
@@ -22,25 +24,27 @@ interface ResultPageProps {
 }
 
 const ResultPage: React.FC<ResultPageProps> = ({
+  data,
   selectedBranchId,
   months,
+  openingDate,
   box1,
   box2,
   isRecommended,
   recommendationInfo,
   onBack,
 }) => {
-  const { globalConfig, militaryBranches } = data;
+  const { globalConfig, banks, militaryBranches } = data;
   const [expandedBankIdx, setExpandedBankIdx] = useState<number | null>(null);
   const [userName, setUserName] = useState('');
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   
   const captureRef = useRef<HTMLDivElement>(null);
-  const currentBranch = militaryBranches.find(b => b.id === selectedBranchId) || militaryBranches[0];
+  const currentBranch = militaryBranches.find((b) => b.id === selectedBranchId) || militaryBranches[0];
 
-  const res1 = calculateResult(box1, months);
-  const res2 = calculateResult(box2, months);
+  const res1 = calculateResult(box1, months, openingDate, banks, globalConfig);
+  const res2 = calculateResult(box2, months, openingDate, banks, globalConfig);
   const totalPrincipal = res1.principal + res2.principal;
   const totalInterest = res1.bankInterest + res2.bankInterest;
   const totalMatching = res1.matchingSupport + res2.matchingSupport;
@@ -71,7 +75,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
       });
     }
 
-    // Give state and animations a moment to update so all sections are expanded
     await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
@@ -88,8 +91,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
       if (!blob) throw new Error('이미지 생성에 실패했습니다.');
 
       const file = new File([blob], fileName, { type: 'image/png' });
-
-      // Only use navigator.share for iOS devices (iPhone, iPad, iPod)
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
       if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -99,7 +100,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
           text: '나의 예상 만기 수령액을 확인해보세요!'
         });
       } else {
-        // Direct download for Android, Desktop, and other environments
         const dataUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = fileName;
@@ -108,7 +108,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
         URL.revokeObjectURL(dataUrl);
       }
       
-      // Close modal after saving
       setIsNameModalOpen(false);
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
@@ -143,7 +142,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
       }
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
-        // Fallback: Copy to clipboard
         try {
           await navigator.clipboard.writeText(window.location.origin);
           alert('서비스 링크가 클립보드에 복사했어요.');
@@ -153,6 +151,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
       }
     }
   };
+
+  const formattedOpeningDate = openingDate.toISOString().split('T')[0];
 
   return (
     <motion.div 
@@ -179,9 +179,11 @@ const ResultPage: React.FC<ResultPageProps> = ({
 
         <div className="flex-1 px-4 pt-4 pb-20">
           <div className="flex justify-between items-center mb-4 ml-1">
-            <p className="text-[10px] font-bold text-slate-400">
-              내용은 2026.04.01. 기준이에요
-            </p>
+            <div className="flex flex-col">
+              <p className="text-[12px] font-bold text-slate-500">
+                입대일: {formattedOpeningDate}
+              </p>
+            </div>
             {!isRecommended && (
               <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
                                     <Calendar size={12} className="shrink-0" /><span className="leading-none">{months}개월</span>
@@ -189,7 +191,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
             )}
           </div>
 
-          {/* User Name Tag (only visible during capture or if name is set) */}
           {(userName || isCapturing) && (
             <div className="mb-4 px-1">
               <span className="text-xl font-black text-slate-900">
@@ -199,7 +200,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
             </div>
           )}
 
-          {/* Recommended Badge */}
           {isRecommended && (
             <div className="mb-6">
               <div className="mb-2.5 bg-blue-600 rounded-xl p-3 flex items-center gap-2 text-white shadow-lg shadow-blue-200">
@@ -238,9 +238,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
             </div>
           )}
 
-          {/* Main Result Card */}
           <div className="bg-[#1A5CFF] rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-200/50 mb-10 relative overflow-hidden">
-
             <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
@@ -266,7 +264,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
             </div>
           </div>
 
-          {/* Breakdown Sections */}
           <div className="space-y-6">
             <h3 className="text-lg font-black text-slate-900 px-1 flex items-center gap-2">
               <PieChart size={20} className="text-blue-600" />
@@ -402,10 +399,15 @@ const ResultPage: React.FC<ResultPageProps> = ({
                           className="overflow-hidden"
                         >
                           <div className="mt-6 pt-6 border-t border-dashed border-slate-200">
-                            <h5 className="text-[13px] font-black text-slate-800 mb-4 flex items-center gap-2">
-                              <CheckCircle2 size={16} className="text-green-500" />
-                              적용된 우대금리 상세
-                            </h5>
+                            <div className="flex items-center justify-between mb-4">
+                              <h5 className="text-[13px] font-black text-slate-800 flex items-center gap-2">
+                                <CheckCircle2 size={16} className="text-green-500" />
+                                적용된 우대금리 상세
+                              </h5>
+                              <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                                {res.effectiveDate} 기준
+                              </span>
+                            </div>
                             
                             {res.selectedPrimes.length > 0 ? (
                               <div className="space-y-4">
@@ -448,7 +450,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
               );
             })}
 
-            {/* Special Benefits Banner */}
             <div className="bg-slate-900 rounded-3xl p-6 text-white overflow-hidden relative">
               <div className="absolute right-0 bottom-0 opacity-20">
                 <ShieldCheck size={120} />
@@ -477,7 +478,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
               </div>
             </div>
 
-            {/* Link Watermark (only visible during capture) */}
             {isCapturing && (
               <div className="pt-12 pb-10 flex flex-col items-center border-t border-slate-100 mt-8 bg-slate-50/30">
                 <p className="text-[13px] font-bold text-slate-400 mb-5">
@@ -495,7 +495,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
           </div>
         </div>
 
-        {/* Bottom Button */}
         {!isCapturing && (
           <div className="sticky bottom-0 left-0 w-full p-4 pb-6 bg-[#F8FAFF] z-30 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex flex-col items-center gap-3">
             <button 
@@ -536,7 +535,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
         )}
       </div>
 
-      {/* Name Input Modal */}
       <AnimatePresence>
         {isNameModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">

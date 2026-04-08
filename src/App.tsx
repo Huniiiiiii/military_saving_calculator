@@ -1,13 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { data } from './data/data';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import ReactGA from 'react-ga4';
+import { Sparkles } from 'lucide-react';
 import Onboarding from './pages/Onboarding';
+import AdminPage from './pages/AdminPage';
 import InputPage from './pages/InputPage';
 import CalculatorPage from './pages/CalculatorPage';
 import ResultPage from './pages/ResultPage';
 import RecommendationPage from './pages/RecommendationPage';
 import type { RecommendationResult } from './pages/RecommendationPage';
+import { supabase } from './lib/supabase';
+import type { Bank } from './utils/savingsUtils';
+
+export interface GlobalData {
+  version: string;
+  globalConfig: {
+    maxTotalMonthlyDeposit: number;
+    maxDepositPerBank: number;
+    matchingSupportRate: number;
+    taxRate: number;
+  };
+  militaryBranches: {
+    id: string;
+    name: string;
+    max_months: number;
+  }[];
+  banks: Bank[];
+}
 
 // Initialize GA4 with your Measurement ID
 if (import.meta.env.PROD) {
@@ -15,12 +34,15 @@ if (import.meta.env.PROD) {
 }
 
 const App: React.FC = () => {
-  const { militaryBranches } = data;
+  // --- Global Data States ---
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [globalData, setGlobalData] = useState<GlobalData | null>(null);
 
-  // --- States ---
-  const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result' | 'recommendation'>('onboarding');
-  const [selectedBranchId, setSelectedBranchId] = useState(militaryBranches[0].id);
-  const [months, setMonths] = useState(militaryBranches[0].maxMonths);
+  // --- App Flow States ---
+  const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result' | 'recommendation' | 'admin'>('onboarding');
+  const [selectedBranchId, setSelectedBranchId] = useState('');
+  const [months, setMonths] = useState(18);
+  const [openingDate, setOpeningDate] = useState(new Date().toISOString().split('T')[0]);
   const [box1, setBox1] = useState({ bankId: '', amount: 300000, selectedPrimeIds: [] as string[] });
   const [box2, setBox2] = useState({ bankId: '', amount: 250000, selectedPrimeIds: [] as string[] });
   const [isRecommended, setIsRecommended] = useState(false);
@@ -30,25 +52,85 @@ const App: React.FC = () => {
     isSociallyVulnerable: false
   });
 
+  // --- Data Fetching ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [
+          { data: config },
+          { data: branches },
+          { data: banks },
+          { data: versions }
+        ] = await Promise.all([
+          supabase.from('global_config').select('*').single(),
+          supabase.from('military_branches').select('*').order('display_order'),
+          supabase.from('banks').select('*').order('display_order'),
+          supabase.from('rate_versions').select('*').order('effective_date', { ascending: false })
+        ]);
+
+        if (!config || !branches || !banks) throw new Error('Failed to fetch required data');
+
+        // Transform into nested data structure expected by the app
+        const processedBanks: Bank[] = banks.map(bank => ({
+          ...bank,
+          rateVersions: (versions || [])
+            .filter(v => v.bank_id === bank.id)
+            .map(v => ({
+              id: v.id,
+              effectiveDate: v.effective_date,
+              maxPrimeRate: v.max_prime_rate,
+              baseRates: v.base_rates,
+              primeRates: v.prime_rates
+            }))
+        }));
+
+        const finalData: GlobalData = {
+          version: config.version,
+          globalConfig: {
+            maxTotalMonthlyDeposit: config.max_total_monthly_deposit,
+            maxDepositPerBank: config.max_deposit_per_bank,
+            matchingSupportRate: config.matching_support_rate,
+            taxRate: config.tax_rate
+          },
+          militaryBranches: branches,
+          banks: processedBanks
+        };
+
+        setGlobalData(finalData);
+        setSelectedBranchId(branches[0].id);
+        setMonths(branches[0].max_months);
+        setIsDataLoaded(true);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        alert('데이터를 불러오는 중 오류가 발생했습니다. 네트워크를 확인해주세요.');
+      }
+    };
+
+    fetchData();
+  }, []);
+
   // Track page views when step changes
   useEffect(() => {
     if (import.meta.env.PROD) {
       ReactGA.send({ hitType: 'pageview', page: `/${step}`, title: step });
     }
+    window.goAdmin = () => setStep('admin');
   }, [step]);
 
   // --- Handlers ---
   const handleBranchChange = (id: string) => {
-    const branch = data.militaryBranches.find(b => b.id === id);
+    if (!globalData) return;
+    const branch = globalData.militaryBranches.find((b) => b.id === id);
     if (branch) {
       setSelectedBranchId(id);
-      setMonths(branch.maxMonths);
+      setMonths(branch.max_months);
     }
   };
 
   const handleMonthsChange = (val: number) => {
-    const branch = data.militaryBranches.find(b => b.id === selectedBranchId);
-    const maxMonths = branch ? branch.maxMonths : 24;
+    if (!globalData) return;
+    const branch = globalData.militaryBranches.find((b) => b.id === selectedBranchId);
+    const maxMonths = branch ? branch.max_months : 24;
     const clampedMonths = Math.max(0, Math.min(val, maxMonths));
     setMonths(clampedMonths);
   };
@@ -68,29 +150,52 @@ const App: React.FC = () => {
   return (
     <AnimatePresence mode="wait">
       {step === 'onboarding' ? (
-        <Onboarding onStart={() => setStep('input')} key="onboarding" />
+        <Onboarding 
+          onStart={() => setStep('input')} 
+          onAdmin={() => setStep('admin')}
+          key="onboarding" 
+        />
+      ) : !isDataLoaded || !globalData ? (
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center" key="global-loading">
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+            <div className="relative mb-6">
+              <div className="w-16 h-16 border-4 border-blue-50 border-t-blue-500 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center"><Sparkles className="text-blue-500" size={24} /></div>
+            </div>
+            <h2 className="text-lg font-black text-slate-900">최신 금리 정보를 가져오고 있어요</h2>
+          </motion.div>
+        </div>
+      ) : step === 'admin' ? (
+        <AdminPage key="admin" initialData={globalData} onBack={() => setStep('input')} onRefresh={() => window.location.reload()} />
       ) : step === 'input' ? (
         <InputPage
           key="input"
+          data={globalData}
           selectedBranchId={selectedBranchId}
           onBranchChange={handleBranchChange}
           months={months}
           onMonthsChange={handleMonthsChange}
+          openingDate={openingDate}
+          onOpeningDateChange={setOpeningDate}
           onNext={() => setStep('calculator')}
           onBack={() => setStep('onboarding')}
         />
       ) : step === 'recommendation' ? (
         <RecommendationPage
           key="recommendation"
+          data={globalData}
           months={months}
+          openingDate={new Date(openingDate)}
           onBack={() => setStep('input')}
           onComplete={handleRecommendationComplete}
         />
       ) : step === 'calculator' ? (
         <CalculatorPage
           key="calculator"
+          data={globalData}
           selectedBranchId={selectedBranchId}
           months={months}
+          openingDate={new Date(openingDate)}
           box1={box1}
           box2={box2}
           setBox1={setBox1}
@@ -110,8 +215,10 @@ const App: React.FC = () => {
       ) : (
         <ResultPage
           key="result"
+          data={globalData}
           selectedBranchId={selectedBranchId}
           months={months}
+          openingDate={new Date(openingDate)}
           box1={box1}
           box2={box2}
           isRecommended={isRecommended}
@@ -125,5 +232,11 @@ const App: React.FC = () => {
     </AnimatePresence>
   );
 };
+
+declare global {
+  interface Window {
+    goAdmin: () => void;
+  }
+}
 
 export default App;
