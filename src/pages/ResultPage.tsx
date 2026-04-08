@@ -92,7 +92,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
 
       const userAgent = navigator.userAgent.toLowerCase();
       const isIOS = /iphone|ipad|ipod/i.test(userAgent);
-      const isAndroid = /android/i.test(userAgent);
       
       // 1. iOS: Use system share if available
       if (isIOS && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
