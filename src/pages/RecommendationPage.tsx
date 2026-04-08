@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Check, Info, Sparkles, Building2, UserCheck, Zap, HelpCircle } from 'lucide-react';
+import { ChevronLeft, Check, Info, Sparkles, Building2, UserCheck, Zap, HelpCircle, Utensils, Smartphone, Film, Shield, Car } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import { data } from '../data/data';
 import { calculateResult, getFilteredPrimeRates } from '../utils/savingsUtils';
@@ -232,14 +232,12 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
       description: "청약 여부에 따라 우대 금리 전략이 달라져요.",
       icon: <HelpCircle className="text-blue-500" size={24} />,
       content: (
-        <div className="grid grid-cols-1 gap-4">
-          <button onClick={() => setHasHousing(true)} className={`py-6 rounded-2xl border-2 flex items-center justify-between px-6 transition-all ${hasHousing === true ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${hasHousing === true ? 'text-blue-700' : 'text-slate-900'}`}>네, 있어요</span>
-            {hasHousing === true && <Check size={20} className="text-blue-500" strokeWidth={3} />}
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => setHasHousing(true)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hasHousing === true ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
+            <span className={`font-bold ${hasHousing === true ? 'text-blue-700' : 'text-slate-900'}`}>네</span>
           </button>
-          <button onClick={() => setHasHousing(false)} className={`py-6 rounded-2xl border-2 flex items-center justify-between px-6 transition-all ${hasHousing === false ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${hasHousing === false ? 'text-blue-700' : 'text-slate-900'}`}>아니오, 없어요</span>
-            {hasHousing === false && <Check size={20} className="text-blue-500" strokeWidth={3} />}
+          <button onClick={() => setHasHousing(false)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hasHousing === false ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
+            <span className={`font-bold ${hasHousing === false ? 'text-blue-700' : 'text-slate-900'}`}>아니오</span>
           </button>
         </div>
       )
@@ -275,19 +273,63 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 4,
-      title: "하나은행으로\n군급여를 받으시나요?",
-      description: "하나 나라사랑카드 이용 시 혜택이 강화돼요.",
+      title: "하나은행으로\n군급여를 받을건가요?",
+      description: "하나 나라사랑카드 이용 시 혜택이 추가돼요.",
       icon: <Zap className="text-orange-500" size={24} />,
       content: (
-        <div className="grid grid-cols-1 gap-4">
-          <button onClick={() => setHanaSalary(true)} className={`py-6 rounded-2xl border-2 flex items-center justify-between px-6 transition-all ${hanaSalary === true ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${hanaSalary === true ? 'text-orange-700' : 'text-slate-900'}`}>네, 하나은행으로 받아요</span>
-            {hanaSalary === true && <Check size={20} className="text-orange-500" strokeWidth={3} />}
-          </button>
-          <button onClick={() => setHanaSalary(false)} className={`py-6 rounded-2xl border-2 flex items-center justify-between px-6 transition-all ${hanaSalary === false ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${hanaSalary === false ? 'text-orange-700' : 'text-slate-900'}`}>아니오, 다른 은행이에요</span>
-            {hanaSalary === false && <Check size={20} className="text-orange-500" strokeWidth={3} />}
-          </button>
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => setHanaSalary(true)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hanaSalary === true ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white'}`}>
+              <span className={`font-bold ${hanaSalary === true ? 'text-orange-700' : 'text-slate-900'}`}>네</span>
+            </button>
+            <button onClick={() => setHanaSalary(false)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hanaSalary === false ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white'}`}>
+              <span className={`font-bold ${hanaSalary === false ? 'text-orange-700' : 'text-slate-900'}`}>아니오</span>
+            </button>
+          </div>
+          <div className="bg-orange-50/50 rounded-2xl p-4 border border-orange-100/50">
+            <p className="text-[11px] text-orange-600 font-bold leading-relaxed flex gap-1.5">
+              <span className="shrink-0">💡</span>
+              <span>하나은행 급여 이체를 선택할 경우, 모든 은행 조합 중 절대적인 최고 금리가 아닐 수 있어요.</span>
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <p className="text-[13px] font-black text-slate-800 mb-5 flex items-center gap-2">
+              <Sparkles size={16} className="text-orange-500" />
+              추가  혜택
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center text-orange-500 shrink-0">
+                  <Utensils size={16} />
+                </div>
+                <span className="text-[12px] font-bold text-slate-600">배달 앱(배민/요기요 등) 20% 캐시백</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
+                  <Smartphone size={16} />
+                </div>
+                <span className="text-[12px] font-bold text-slate-600">구독·디지털(넷플릭스/유튜브 등) 10% 캐시백</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center text-purple-500 shrink-0">
+                  <Film size={16} />
+                </div>
+                <span className="text-[12px] font-bold text-slate-600">CGV 팝콘(S) 세트 무료 제공</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center text-green-500 shrink-0">
+                  <Shield size={16} />
+                </div>
+                <span className="text-[12px] font-bold text-slate-600">휴대폰 파손보험 무료 가입</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-yellow-50 rounded-lg flex items-center justify-center text-yellow-600 shrink-0">
+                  <Car size={16} />
+                </div>
+                <span className="text-[12px] font-bold text-slate-600">택시 이용금액 20% 캐시백</span>
+              </div>
+            </div>
+          </div>
         </div>
       )
     }
@@ -325,16 +367,19 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
             <p className="text-slate-500 font-medium">{currentStepData.description}</p>
           </div>
           <AnimatePresence mode="wait"><motion.div key={step} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="flex-1">{currentStepData.content}</motion.div></AnimatePresence>
-          <div className="mt-auto pt-10">
-            <button
-              onClick={handleNext}
-              disabled={(step === 1 && hasHousing === null) || (step === 2 && housingBankId === '') || (step === 4 && hanaSalary === null)}
-              className="w-full h-16 bg-[#1A5CFF] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-30"
-            >
-              {step === 4 ? "분석 시작하기" : "다음으로"}
-            </button>
-            <div className="mt-4 flex items-center justify-center gap-2 text-slate-400">
-              <Info size={14} /><span className="text-[11px] font-bold tracking-tight">입력하신 정보는 오직 추천에만 활용돼요.</span>
+          <div className="h-32" /> {/* Spacer for fixed bottom area */}
+          <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#F8FAFF]/80 backdrop-blur-md z-30 flex flex-col items-center">
+            <div className="w-full max-w-[480px]">
+              <button
+                onClick={handleNext}
+                disabled={(step === 1 && hasHousing === null) || (step === 2 && housingBankId === '') || (step === 4 && hanaSalary === null)}
+                className="w-full h-16 bg-[#1A5CFF] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-30"
+              >
+                {step === 4 ? "분석 시작하기" : "다음으로"}
+              </button>
+              <div className="mt-4 flex items-center justify-center gap-2 text-slate-400">
+                <Info size={14} /><span className="text-[11px] font-bold tracking-tight">입력하신 정보는 오직 추천에만 활용돼요.</span>
+              </div>
             </div>
           </div>
         </div>
