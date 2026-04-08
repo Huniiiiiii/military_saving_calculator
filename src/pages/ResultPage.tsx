@@ -90,16 +90,21 @@ const ResultPage: React.FC<ResultPageProps> = ({
 
       if (!blob) throw new Error('이미지 생성에 실패했습니다.');
 
-      const file = new File([blob], fileName, { type: 'image/png' });
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-      if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isIOS = /iphone|ipad|ipod/i.test(userAgent);
+      const isAndroid = /android/i.test(userAgent);
+      
+      // 1. iOS: Use system share if available
+      if (isIOS && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
+        const file = new File([blob], fileName, { type: 'image/png' });
         await navigator.share({
           files: [file],
           title: '장병내일준비적금 계산 결과',
           text: '나의 예상 만기 수령액을 확인해보세요!'
         });
-      } else {
+      } 
+      // 2. Android & Windows/PC: Direct download
+      else {
         const dataUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = fileName;
