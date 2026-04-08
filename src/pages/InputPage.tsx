@@ -9,7 +9,6 @@ interface InputPageProps {
   months: number;
   onMonthsChange: (val: number) => void;
   onNext: () => void;
-  onRecommend: () => void;
   onBack: () => void;
 }
 
@@ -19,7 +18,6 @@ const InputPage: React.FC<InputPageProps> = ({
   months,
   onMonthsChange,
   onNext,
-  onRecommend,
   onBack
 }) => {
   const { militaryBranches } = data;
@@ -62,7 +60,7 @@ const InputPage: React.FC<InputPageProps> = ({
                     onClick={() => onBranchChange(branch.id)}
                     className={`h-16 rounded-2xl border transition-all flex items-center justify-center font-bold text-center px-2 leading-tight whitespace-pre-line
                       ${isSelected 
-                        ? 'border-blue-600 bg-white text-blue-600 shadow-sm' 
+                        ? 'border-[#2272eb] bg-white text-[#2272eb] shadow-sm' 
                         : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                   >
                     <span className={displayName.length > 8 ? 'text-[11px]' : 'text-[13px]'}>
@@ -76,7 +74,7 @@ const InputPage: React.FC<InputPageProps> = ({
 
           {/* 2. Blue Card for Months Input */}
           <section className="relative px-1 mt-1">
-            <div className="w-full bg-[#1A5CFF] rounded-[2rem] py-6 px-6 flex flex-col items-center shadow-[0_15px_35px_rgba(26,92,255,0.15)]">
+            <div className="w-full bg-[#2272eb] rounded-[2rem] py-6 px-6 flex flex-col items-center shadow-[0_15px_35px_rgba(26,92,255,0.15)]">
               <p className="text-blue-100 text-[10px] font-medium mb-1">자신의 복무기간에 맞는</p>
               <h3 className="text-white text-[15px] font-bold mb-5 text-center">장병내일준비적금<br/>희망 납입 개월을 입력해주세요</h3>
               
@@ -86,9 +84,9 @@ const InputPage: React.FC<InputPageProps> = ({
                   value={months || ''}
                   onChange={(e) => onMonthsChange(Number(e.target.value))}
                   placeholder="00"
-                  className="w-full text-center bg-transparent border-none p-0 font-black text-3xl text-[#1A5CFF] focus:ring-0 placeholder:text-blue-100"
+                  className="w-full text-center bg-transparent border-none p-0 font-black text-3xl text-[#2272eb] focus:ring-0 placeholder:text-blue-100"
                 />
-                <span className="absolute right-4 bottom-3 text-[10px] font-black text-[#1A5CFF]">개월</span>
+                <span className="absolute right-4 bottom-3 text-[10px] font-black text-[#2272eb]">개월</span>
               </div>
             </div>
           </section>
@@ -97,16 +95,9 @@ const InputPage: React.FC<InputPageProps> = ({
         {/* Bottom CTA Button */}
         <div className="w-full p-5 pb-8 space-y-3">
           <button
-            onClick={onRecommend}
-            disabled={months <= 0}
-            className="w-full h-14 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-black text-base shadow-sm hover:bg-blue-50 transition-all active:scale-[0.98] disabled:opacity-30"
-          >
-            은행 추천받기
-          </button>
-          <button
             onClick={onNext}
             disabled={months <= 0}
-            className="w-full h-14 bg-[#1A5CFF] text-white rounded-xl font-black text-base shadow-lg hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
+            className="w-full h-14 bg-[#2272eb] text-white rounded-xl font-black text-base shadow-lg hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
           >
             직접 계산하기
           </button>

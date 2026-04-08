@@ -77,7 +77,6 @@ const App: React.FC = () => {
           months={months}
           onMonthsChange={handleMonthsChange}
           onNext={() => setStep('calculator')}
-          onRecommend={() => setStep('recommendation')}
           onBack={() => setStep('onboarding')}
         />
       ) : step === 'recommendation' ? (
@@ -97,6 +96,7 @@ const App: React.FC = () => {
           setBox1={setBox1}
           setBox2={setBox2}
           onBack={() => setStep('input')}
+          onRecommend={() => setStep('recommendation')}
           onReset={() => {
             setBox1({ bankId: '', amount: 300000, selectedPrimeIds: [] });
             setBox2({ bankId: '', amount: 250000, selectedPrimeIds: [] });

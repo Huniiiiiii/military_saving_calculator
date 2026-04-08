@@ -14,6 +14,7 @@ interface CalculatorPageProps {
   setBox1: React.Dispatch<React.SetStateAction<BoxState>>;
   setBox2: React.Dispatch<React.SetStateAction<BoxState>>;
   onBack: () => void;
+  onRecommend: () => void;
   onReset: () => void;
   onShowDetails: () => void;
 }
@@ -26,6 +27,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
   setBox1,
   setBox2,
   onBack,
+  onRecommend,
   onReset,
   onShowDetails
 }) => {
@@ -285,7 +287,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
         </header>
 
         {/* Content (Scrollable) */}
-        <div className="flex-1 px-4 py-4 pb-44">
+        <div className="flex-1 px-4 py-4 pb-80">
           <p className="text-[10px] font-bold text-slate-400 mb-2 ml-1">
             내용은 2026.04.01. 기준이에요
           </p>
@@ -332,23 +334,31 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </span>
               </div>
             </div>
-            <button 
-              onClick={() => {
-                if (import.meta.env.PROD) {
-                  ReactGA.event({
-                    category: 'User',
-                    action: 'calculator_show_details_click',
-                    label: '상세 분석 보기'
-                  });
-                }
-                onShowDetails();
-              }}
-              disabled={isAnyBankNotSelected}
-              className={`w-full h-14 rounded-xl font-bold text-base shadow-lg active:scale-[0.98] transition-all
-                ${isAnyBankNotSelected ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#0F172A] text-white'}`}
-            >
-              {isAnyBankNotSelected ? '은행을 선택해주세요' : '상세 분석 보기'}
-            </button>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={onRecommend}
+                className="w-full h-14 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-black text-base shadow-sm hover:bg-blue-50 transition-all active:scale-[0.98]"
+              >
+                은행 추천받기
+              </button>
+              <button 
+                onClick={() => {
+                  if (import.meta.env.PROD) {
+                    ReactGA.event({
+                      category: 'User',
+                      action: 'calculator_show_details_click',
+                      label: '상세 분석 보기'
+                    });
+                  }
+                  onShowDetails();
+                }}
+                disabled={isAnyBankNotSelected}
+                className={`w-full h-14 rounded-xl font-bold text-base shadow-lg active:scale-[0.98] transition-all
+                  ${isAnyBankNotSelected ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#0F172A] text-white'}`}
+              >
+                {isAnyBankNotSelected ? '은행을 선택해주세요' : '상세 분석 보기'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
