@@ -324,8 +324,14 @@ const ResultPage: React.FC<ResultPageProps> = ({
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block ${idx === 0 ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
                           은행 {idx === 0 ? 'A' : 'B'}
                         </span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="text-lg font-black text-slate-900">{res.bankName}</h4>
+                          {res.selectedPrimes.some(p => p.group === 'housing') && (
+                            <span className="bg-orange-50 text-orange-600 text-[10px] px-1.5 py-0.5 rounded-md font-bold border border-orange-100">청약</span>
+                          )}
+                          {res.selectedPrimes.some(p => p.group === 'salary') && (
+                            <span className="bg-green-50 text-green-600 text-[10px] px-1.5 py-0.5 rounded-md font-bold border border-green-100">군급여</span>
+                          )}
                           <div className={`p-1 rounded-full ${isExpanded ? 'bg-slate-100' : 'bg-slate-50'}`}>
                             {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                           </div>

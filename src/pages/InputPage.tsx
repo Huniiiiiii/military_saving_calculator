@@ -99,7 +99,7 @@ const InputPage: React.FC<InputPageProps> = ({
             disabled={months <= 0}
             className="w-full h-14 bg-[#2272eb] text-white rounded-xl font-black text-base shadow-lg hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
           >
-            직접 계산하기
+            적금 계산하기
           </button>
         </div>
       </div>
