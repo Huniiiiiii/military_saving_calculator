@@ -25,7 +25,7 @@ const App: React.FC = () => {
   const [box2, setBox2] = useState({ bankId: '', amount: 250000, selectedPrimeIds: [] as string[] });
   const [isRecommended, setIsRecommended] = useState(false);
   const [recommendationInfo, setRecommendationInfo] = useState({
-    preference: 'profit' as 'profit' | 'convenience',
+    hanaSalary: false,
     housingBankName: '',
     isSociallyVulnerable: false
   });
@@ -57,7 +57,7 @@ const App: React.FC = () => {
     setBox1(result.box1);
     setBox2(result.box2);
     setRecommendationInfo({
-      preference: result.preference,
+      hanaSalary: result.hanaSalary,
       housingBankName: result.housingBankName,
       isSociallyVulnerable: result.isSociallyVulnerable
     });

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2, Sparkles, Share2, Download, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieChart, Landmark, ChevronDown, ChevronUp, CheckCircle2, Sparkles, Share2, Download, X, CreditCard, Home, Zap, Calendar } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import * as htmlToImage from 'html-to-image';
 import { data } from '../data/data';
@@ -14,7 +14,7 @@ interface ResultPageProps {
   box2: BoxState;
   isRecommended?: boolean;
   recommendationInfo?: {
-    preference: 'profit' | 'convenience';
+    hanaSalary: boolean;
     housingBankName: string;
     isSociallyVulnerable: boolean;
   };
@@ -184,7 +184,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
             </p>
             {!isRecommended && (
               <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
-                📅 {months}개월 납입 조건
+                                    <Calendar size={12} className="shrink-0" /><span className="leading-none">{months}개월</span>
               </div>
             )}
           </div>
@@ -208,14 +208,25 @@ const ResultPage: React.FC<ResultPageProps> = ({
               </div>
               {recommendationInfo && (
                 <div className="flex flex-wrap gap-1.5 ml-1">
-                  <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100">
-                    📅 {months}개월 납입
+                  <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
+                    <Calendar size={12} className="shrink-0" /><span className="leading-none">{months}개월</span>
                   </div>
-                  <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100">
-                    {recommendationInfo.preference === 'profit' ? '💰 수익 우선' : '📱 편의 우선'}
+                  <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
+                    {recommendationInfo.hanaSalary ? (
+                      <>
+                        <CreditCard size={12} className="shrink-0" />
+                        <span className="leading-none">군급여: 하나</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={12} className="shrink-0" />
+                        <span className="leading-none">최고 수익</span>
+                      </>
+                    )}
                   </div>
-                  <div className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-slate-200">
-                    🏠 청약: {recommendationInfo.housingBankName}
+                  <div className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center gap-1">
+                    <Home size={12} className="shrink-0" />
+                    <span className="leading-none">청약: {recommendationInfo.housingBankName}</span>
                   </div>
                   {recommendationInfo.isSociallyVulnerable && (
                     <div className="bg-purple-50 text-purple-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-purple-100">
@@ -327,10 +338,16 @@ const ResultPage: React.FC<ResultPageProps> = ({
                         <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="text-lg font-black text-slate-900">{res.bankName}</h4>
                           {res.selectedPrimes.some(p => p.group === 'housing') && (
-                            <span className="bg-orange-50 text-orange-600 text-[10px] px-1.5 py-0.5 rounded-md font-bold border border-orange-100">청약</span>
+                            <span className="bg-orange-50 text-orange-600 text-[10px] px-1.5 py-0.5 rounded-md font-bold border border-orange-100 flex items-center gap-1">
+                              <Home size={10} className="shrink-0" />
+                              <span className="leading-none">청약</span>
+                            </span>
                           )}
                           {res.selectedPrimes.some(p => p.group === 'salary') && (
-                            <span className="bg-green-50 text-green-600 text-[10px] px-1.5 py-0.5 rounded-md font-bold border border-green-100">군급여</span>
+                            <span className="bg-green-50 text-green-600 text-[10px] px-1.5 py-0.5 rounded-md font-bold border border-green-100 flex items-center gap-1">
+                              <CreditCard size={10} className="shrink-0" />
+                              <span className="leading-none">군급여</span>
+                            </span>
                           )}
                           <div className={`p-1 rounded-full ${isExpanded ? 'bg-slate-100' : 'bg-slate-50'}`}>
                             {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}

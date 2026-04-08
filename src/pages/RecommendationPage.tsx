@@ -10,7 +10,7 @@ export interface RecommendationResult {
   isRecommended: boolean;
   box1: BoxState;
   box2: BoxState;
-  preference: 'profit' | 'convenience';
+  hanaSalary: boolean;
   housingBankName: string;
   isSociallyVulnerable: boolean;
 }
@@ -31,7 +31,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   const [hasHousing, setHasHousing] = useState<boolean | null>(null);
   const [housingBankId, setHousingBankId] = useState<string>(''); 
   const [isSociallyVulnerable, setIsSociallyVulnerable] = useState(false);
-  const [preference, setPreference] = useState<'profit' | 'convenience'>('profit');
+  const [hanaSalary, setHanaSalary] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const { banks } = data;
@@ -41,7 +41,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
       ReactGA.event({
         category: 'AI_Recommendation',
         action: 'start_analysis',
-        label: `pref_${preference}_social_${isSociallyVulnerable}`
+        label: `hanaSalary_${hanaSalary}_social_${isSociallyVulnerable}`
       });
     }
     
@@ -54,7 +54,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
       onComplete({
         isRecommended: true,
         ...bestCombination,
-        preference,
+        hanaSalary: !!hanaSalary,
         housingBankName,
         isSociallyVulnerable
       });
@@ -62,95 +62,147 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   };
 
   const findBestCombination = () => {
-    const bankPairs: [Bank, Bank][] = [];
-    for (let i = 0; i < banks.length; i++) {
-      for (let j = i + 1; j < banks.length; j++) {
-        bankPairs.push([banks[i], banks[j]] as [Bank, Bank]);
-      }
-    }
-
-    let overallBest = {
-      box1: null as BoxState | null,
-      box2: null as BoxState | null,
-      totalMaturity: 0,
-      totalRate: 0
+    // Helper to get optimal prime rate IDs for a bank
+    const getOptimalIds = (bank: Bank, canTakeSalary: boolean, canTakeHousing: boolean) => {
+      const filtered = getFilteredPrimeRates(bank, months);
+      return filtered
+        .filter(p => {
+          if (p.group === 'salary') return canTakeSalary;
+          if (p.group === 'housing') return canTakeHousing;
+          if (p.group.includes('social_vulnerable')) return isSociallyVulnerable;
+          return true;
+        })
+        .map(p => p.id);
     };
 
-    bankPairs.forEach(([bankA, bankB]) => {
-      const getOptimalIds = (bank: Bank, canTakeSalary: boolean, canTakeHousing: boolean) => {
-        const filtered = getFilteredPrimeRates(bank, months);
-        return filtered
-          .filter(p => {
-            if (p.group === 'salary') return canTakeSalary;
-            if (p.group === 'housing') return canTakeHousing;
-            if (p.group.includes('social_vulnerable')) return isSociallyVulnerable;
-            return true;
-          })
-          .map(p => p.id);
+    if (hanaSalary) {
+      // 1. Hana Bank is fixed as one bank
+      const bankHana = banks.find(b => b.id === 'hana') as Bank;
+      
+      // Hana Bank MUST take salary prime
+      
+      // We'll evaluate the second bank first to see where housing fits best if hasHousing is false
+      let overallBest = {
+        box1: null as BoxState | null,
+        box2: null as BoxState | null,
+        totalMaturity: 0
       };
 
-      const simulate = (salaryAtA: boolean) => {
-        let housingAtA = false;
-        let housingAtB = false;
+      banks.forEach(otherBank => {
+        if (otherBank.id === 'hana') return;
 
-        if (hasHousing) {
-          housingAtA = bankA.id === housingBankId;
-          housingAtB = bankB.id === housingBankId;
-        } else {
-          housingAtA = true; 
-          housingAtB = true; 
-        }
+        const simulateHousing = (housingToHana: boolean) => {
+          const idsHana = getOptimalIds(bankHana, true, housingToHana);
+          const idsOther = getOptimalIds(otherBank, false, !housingToHana && (hasHousing ? housingBankId === otherBank.id : true));
 
-        const idsA = getOptimalIds(bankA, salaryAtA, housingAtA);
-        const idsB = getOptimalIds(bankB, !salaryAtA, housingAtB);
+          const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months);
+          const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months);
 
-        if (!hasHousing) {
-           const rWithA = calculateResult({ bankId: bankA.id, amount: 10000, selectedPrimeIds: idsA }, months);
-           const rWithB = calculateResult({ bankId: bankB.id, amount: 10000, selectedPrimeIds: idsB }, months);
-           const finalIdsA = getOptimalIds(bankA, salaryAtA, (rWithA.baseRate + rWithA.primeRate) >= (rWithB.baseRate + rWithB.primeRate));
-           const finalIdsB = getOptimalIds(bankB, !salaryAtA, (rWithB.baseRate + rWithB.primeRate) > (rWithA.baseRate + rWithA.primeRate));
-           return { idsA: finalIdsA, idsB: finalIdsB };
-        }
-        return { idsA, idsB };
-      };
+          const rateHana = resHana.baseRate + resHana.primeRate;
+          const rateOther = resOther.baseRate + resOther.primeRate;
 
-      const processScenario = (c: {idsA: string[], idsB: string[]}) => {
-        const rA = calculateResult({ bankId: bankA.id, amount: 10000, selectedPrimeIds: c.idsA }, months);
-        const rB = calculateResult({ bankId: bankB.id, amount: 10000, selectedPrimeIds: c.idsB }, months);
-        const rateA = rA.baseRate + rA.primeRate;
-        const rateB = rB.baseRate + rB.primeRate;
-        
-        const amtA = rateA >= rateB ? 300000 : 250000;
-        const amtB = rateA >= rateB ? 250000 : 300000;
-        
-        const finalA = calculateResult({ bankId: bankA.id, amount: amtA, selectedPrimeIds: c.idsA }, months);
-        const finalB = calculateResult({ bankId: bankB.id, amount: amtB, selectedPrimeIds: c.idsB }, months);
-        
-        return {
-          total: finalA.total + finalB.total,
-          rate: rateA + rateB,
-          box1: rateA >= rateB ? { bankId: bankA.id, amount: amtA, selectedPrimeIds: c.idsA } : { bankId: bankB.id, amount: amtB, selectedPrimeIds: c.idsB },
-          box2: rateA >= rateB ? { bankId: bankB.id, amount: amtB, selectedPrimeIds: c.idsB } : { bankId: bankA.id, amount: amtA, selectedPrimeIds: c.idsA }
+          const amtHana = rateHana >= rateOther ? 300000 : 250000;
+          const amtOther = rateHana >= rateOther ? 250000 : 300000;
+
+          const finalHana = calculateResult({ bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }, months);
+          const finalOther = calculateResult({ bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther }, months);
+
+          return {
+            total: finalHana.total + finalOther.total,
+            box1: rateHana >= rateOther ? { bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana } : { bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther },
+            box2: rateHana >= rateOther ? { bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther } : { bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }
+          };
         };
-      };
 
-      const res1 = processScenario(simulate(true));
-      const res2 = processScenario(simulate(false));
-      const bestOfPair = res1.total > res2.total ? res1 : res2;
+        let scenario;
+        if (hasHousing) {
+          scenario = simulateHousing(housingBankId === 'hana');
+        } else {
+          // If no housing, try putting housing in either bank and pick best
+          const s1 = simulateHousing(true);
+          const s2 = simulateHousing(false);
+          scenario = s1.total > s2.total ? s1 : s2;
+        }
 
-      if (preference === 'convenience' && hasHousing && (bankA.id === housingBankId || bankB.id === housingBankId)) {
-        if (overallBest.totalRate - bestOfPair.rate <= 0.002 && bestOfPair.total > overallBest.totalMaturity * 0.999) {
-          overallBest = { box1: bestOfPair.box1, box2: bestOfPair.box2, totalMaturity: bestOfPair.total, totalRate: bestOfPair.rate };
-          return;
+        if (scenario.total > overallBest.totalMaturity) {
+          overallBest = {
+            box1: scenario.box1,
+            box2: scenario.box2,
+            totalMaturity: scenario.total
+          };
+        }
+      });
+
+      return { box1: overallBest.box1!, box2: overallBest.box2! };
+
+    } else {
+      // 2. No fixed Hana Bank salary. Find absolute best.
+      const bankPairs: [Bank, Bank][] = [];
+      for (let i = 0; i < banks.length; i++) {
+        for (let j = i + 1; j < banks.length; j++) {
+          bankPairs.push([banks[i], banks[j]] as [Bank, Bank]);
         }
       }
 
-      if (bestOfPair.total > overallBest.totalMaturity) {
-        overallBest = { box1: bestOfPair.box1, box2: bestOfPair.box2, totalMaturity: bestOfPair.total, totalRate: bestOfPair.rate };
-      }
-    });
+      let overallBest = {
+        box1: null as BoxState | null,
+        box2: null as BoxState | null,
+        totalMaturity: 0
+      };
 
-    return { box1: overallBest.box1!, box2: overallBest.box2! };
+      bankPairs.forEach(([bankA, bankB]) => {
+        const simulateScenario = (salaryAtA: boolean, housingAtA: boolean) => {
+          // Re-adjust housing if hasHousing is true to be strict
+          const actualHousingAtA = hasHousing ? (housingBankId === bankA.id) : housingAtA;
+          const actualHousingAtB = hasHousing ? (housingBankId === bankB.id) : !housingAtA;
+          
+          const finalIdsA = getOptimalIds(bankA, salaryAtA, actualHousingAtA);
+          const finalIdsB = getOptimalIds(bankB, !salaryAtA, actualHousingAtB);
+
+          const resA = calculateResult({ bankId: bankA.id, amount: 10000, selectedPrimeIds: finalIdsA }, months);
+          const resB = calculateResult({ bankId: bankB.id, amount: 10000, selectedPrimeIds: finalIdsB }, months);
+
+          const rateA = resA.baseRate + resA.primeRate;
+          const rateB = resB.baseRate + resB.primeRate;
+
+          const amtA = rateA >= rateB ? 300000 : 250000;
+          const amtB = rateA >= rateB ? 250000 : 300000;
+
+          const finalA = calculateResult({ bankId: bankA.id, amount: amtA, selectedPrimeIds: finalIdsA }, months);
+          const finalB = calculateResult({ bankId: bankB.id, amount: amtB, selectedPrimeIds: finalIdsB }, months);
+
+          return {
+            total: finalA.total + finalB.total,
+            box1: rateA >= rateB ? { bankId: bankA.id, amount: amtA, selectedPrimeIds: finalIdsA } : { bankId: bankB.id, amount: amtB, selectedPrimeIds: finalIdsB },
+            box2: rateA >= rateB ? { bankId: bankB.id, amount: amtB, selectedPrimeIds: finalIdsB } : { bankId: bankA.id, amount: amtA, selectedPrimeIds: finalIdsA }
+          };
+        };
+
+        const scenarios = [];
+        if (hasHousing) {
+          scenarios.push(simulateScenario(true, housingBankId === bankA.id));
+          scenarios.push(simulateScenario(false, housingBankId === bankA.id));
+        } else {
+          // Try all 4 combinations of salary (A/B) and housing (A/B)
+          scenarios.push(simulateScenario(true, true));
+          scenarios.push(simulateScenario(true, false));
+          scenarios.push(simulateScenario(false, true));
+          scenarios.push(simulateScenario(false, false));
+        }
+
+        scenarios.forEach(s => {
+          if (s.total > overallBest.totalMaturity) {
+            overallBest = {
+              box1: s.box1,
+              box2: s.box2,
+              totalMaturity: s.total
+            };
+          }
+        });
+      });
+
+      return { box1: overallBest.box1!, box2: overallBest.box2! };
+    }
   };
 
   const handleNext = () => {
@@ -223,18 +275,18 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 4,
-      title: "어떤 스타일의\n추천을 원하시나요?",
-      description: "성향에 맞춰 최적의 조합을 찾아드릴게요.",
+      title: "하나은행으로\n군급여를 받으시나요?",
+      description: "하나 나라사랑카드 이용 시 혜택이 강화돼요.",
       icon: <Zap className="text-orange-500" size={24} />,
       content: (
         <div className="grid grid-cols-1 gap-4">
-          <button onClick={() => setPreference('profit')} className={`rounded-2xl border-2 py-6 px-5 text-left transition-all ${preference === 'profit' ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white'}`}>
-            <p className={`font-black text-lg ${preference === 'profit' ? 'text-orange-700' : 'text-slate-900'}`}>💰 수익 우선</p>
-            <p className="text-xs text-slate-500 font-medium mt-1">단 1원이라도 더 많이 받는 것이 중요해요.</p>
+          <button onClick={() => setHanaSalary(true)} className={`py-6 rounded-2xl border-2 flex items-center justify-between px-6 transition-all ${hanaSalary === true ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white'}`}>
+            <span className={`font-bold ${hanaSalary === true ? 'text-orange-700' : 'text-slate-900'}`}>네, 하나은행으로 받아요</span>
+            {hanaSalary === true && <Check size={20} className="text-orange-500" strokeWidth={3} />}
           </button>
-          <button onClick={() => setPreference('convenience')} className={`rounded-2xl border-2 py-6 px-5 text-left transition-all ${preference === 'convenience' ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
-            <p className={`font-black text-lg ${preference === 'convenience' ? 'text-blue-700' : 'text-slate-900'}`}>📱 편의 우선</p>
-            <p className="text-xs text-slate-500 font-medium mt-1">주거래 은행이나 청약 은행을 최대한 활용하고 싶어요.</p>
+          <button onClick={() => setHanaSalary(false)} className={`py-6 rounded-2xl border-2 flex items-center justify-between px-6 transition-all ${hanaSalary === false ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white'}`}>
+            <span className={`font-bold ${hanaSalary === false ? 'text-orange-700' : 'text-slate-900'}`}>아니오, 다른 은행이에요</span>
+            {hanaSalary === false && <Check size={20} className="text-orange-500" strokeWidth={3} />}
           </button>
         </div>
       )
@@ -276,7 +328,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           <div className="mt-auto pt-10">
             <button
               onClick={handleNext}
-              disabled={(step === 1 && hasHousing === null) || (step === 2 && housingBankId === '')}
+              disabled={(step === 1 && hasHousing === null) || (step === 2 && housingBankId === '') || (step === 4 && hanaSalary === null)}
               className="w-full h-16 bg-[#1A5CFF] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-30"
             >
               {step === 4 ? "분석 시작하기" : "다음으로"}
