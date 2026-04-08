@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
-import { data } from '../data/data';
+import type { GlobalData } from '../App';
 
 interface InputPageProps {
+  data: GlobalData;
   selectedBranchId: string;
   onBranchChange: (id: string) => void;
   months: number;
@@ -15,6 +16,7 @@ interface InputPageProps {
 }
 
 const InputPage: React.FC<InputPageProps> = ({
+  data,
   selectedBranchId,
   onBranchChange,
   months,
@@ -135,6 +137,5 @@ const InputPage: React.FC<InputPageProps> = ({
     </motion.div>
   );
 };
-
 
 export default InputPage;

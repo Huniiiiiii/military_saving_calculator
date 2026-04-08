@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, Sparkles, Building2, UserCheck, Zap, HelpCircle, Utensils, Smartphone, Film, Shield, Car } from 'lucide-react';
 import ReactGA from 'react-ga4';
-import { data } from '../data/data';
+import type { GlobalData } from '../App';
 import { calculateResult, getFilteredPrimeRates, getRateVersionForDate } from '../utils/savingsUtils';
 import type { BoxState, Bank } from '../utils/savingsUtils';
 
@@ -16,6 +16,7 @@ export interface RecommendationResult {
 }
 
 interface RecommendationPageProps {
+  data: GlobalData;
   months: number;
   openingDate: Date;
   onBack: () => void;
@@ -23,6 +24,7 @@ interface RecommendationPageProps {
 }
 
 const RecommendationPage: React.FC<RecommendationPageProps> = ({
+  data,
   months,
   openingDate,
   onBack,
@@ -36,7 +38,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   const [hanaSalary, setHanaSalary] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { banks } = data;
+  const { banks, globalConfig } = data;
 
   const handleStartAnalysis = () => {
     if (import.meta.env.PROD) {
@@ -50,7 +52,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     setIsLoading(true);
     setTimeout(() => {
       const bestCombination = findBestCombination();
-      const housingBank = banks.find(b => b.id === housingBankId);
+      const housingBank = banks.find((b) => b.id === housingBankId);
       const housingBankName = hasHousing ? (housingBank ? housingBank.name : '타행/기타') : '없음(신규가입 추천)';
 
       onComplete({
@@ -64,7 +66,6 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   };
 
   const findBestCombination = () => {
-    // Helper to get optimal prime rate IDs for a bank
     const getOptimalIds = (bank: Bank, canTakeSalary: boolean, canTakeHousing: boolean) => {
       const version = getRateVersionForDate(bank, openingDate);
       const filtered = getFilteredPrimeRates(bank, months, version);
@@ -79,25 +80,23 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     };
 
     if (hanaSalary) {
-      // 1. Hana Bank is fixed as one bank
-      const bankHana = (banks as unknown as Bank[]).find(b => b.id === 'hana') as Bank;
+      const bankHana = banks.find(b => b.id === 'hana') as Bank;
       
-      // We'll evaluate the second bank first to see where housing fits best if hasHousing is false
       let overallBest = {
         box1: null as BoxState | null,
         box2: null as BoxState | null,
         totalMaturity: 0
       };
 
-      (banks as unknown as Bank[]).forEach(otherBank => {
+      banks.forEach(otherBank => {
         if (otherBank.id === 'hana') return;
 
         const simulateHousing = (housingToHana: boolean) => {
           const idsHana = getOptimalIds(bankHana, true, housingToHana);
           const idsOther = getOptimalIds(otherBank, false, !housingToHana && (hasHousing ? housingBankId === otherBank.id : true));
 
-          const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months, openingDate);
-          const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months, openingDate);
+          const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months, openingDate, banks, globalConfig);
+          const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months, openingDate, banks, globalConfig);
 
           const rateHana = resHana.baseRate + resHana.primeRate;
           const rateOther = resOther.baseRate + resOther.primeRate;
@@ -105,8 +104,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           const amtHana = rateHana >= rateOther ? 300000 : 250000;
           const amtOther = rateHana >= rateOther ? 250000 : 300000;
 
-          const finalHana = calculateResult({ bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }, months, openingDate);
-          const finalOther = calculateResult({ bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther }, months, openingDate);
+          const finalHana = calculateResult({ bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }, months, openingDate, banks, globalConfig);
+          const finalOther = calculateResult({ bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther }, months, openingDate, banks, globalConfig);
 
           return {
             total: finalHana.total + finalOther.total,
@@ -119,7 +118,6 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
         if (hasHousing) {
           scenario = simulateHousing(housingBankId === 'hana');
         } else {
-          // If no housing, try putting housing in either bank and pick best
           const s1 = simulateHousing(true);
           const s2 = simulateHousing(false);
           scenario = s1.total > s2.total ? s1 : s2;
@@ -137,8 +135,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
       return { box1: overallBest.box1!, box2: overallBest.box2! };
 
     } else {
-      // 2. No fixed Hana Bank salary. Find absolute best.
-      const bankList = banks as unknown as Bank[];
+      const bankList = banks;
       const bankPairs: [Bank, Bank][] = [];
       for (let i = 0; i < bankList.length; i++) {
         for (let j = i + 1; j < bankList.length; j++) {
@@ -154,15 +151,14 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
 
       bankPairs.forEach(([bankA, bankB]) => {
         const simulateScenario = (salaryAtA: boolean, housingAtA: boolean) => {
-          // Re-adjust housing if hasHousing is true to be strict
           const actualHousingAtA = hasHousing ? (housingBankId === bankA.id) : housingAtA;
           const actualHousingAtB = hasHousing ? (housingBankId === bankB.id) : !housingAtA;
           
           const finalIdsA = getOptimalIds(bankA, salaryAtA, actualHousingAtA);
           const finalIdsB = getOptimalIds(bankB, !salaryAtA, actualHousingAtB);
 
-          const resA = calculateResult({ bankId: bankA.id, amount: 10000, selectedPrimeIds: finalIdsA }, months, openingDate);
-          const resB = calculateResult({ bankId: bankB.id, amount: 10000, selectedPrimeIds: finalIdsB }, months, openingDate);
+          const resA = calculateResult({ bankId: bankA.id, amount: 10000, selectedPrimeIds: finalIdsA }, months, openingDate, banks, globalConfig);
+          const resB = calculateResult({ bankId: bankB.id, amount: 10000, selectedPrimeIds: finalIdsB }, months, openingDate, banks, globalConfig);
 
           const rateA = resA.baseRate + resA.primeRate;
           const rateB = resB.baseRate + resB.primeRate;
@@ -170,8 +166,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           const amtA = rateA >= rateB ? 300000 : 250000;
           const amtB = rateA >= rateB ? 250000 : 300000;
 
-          const finalA = calculateResult({ bankId: bankA.id, amount: amtA, selectedPrimeIds: finalIdsA }, months, openingDate);
-          const finalB = calculateResult({ bankId: bankB.id, amount: amtB, selectedPrimeIds: finalIdsB }, months, openingDate);
+          const finalA = calculateResult({ bankId: bankA.id, amount: amtA, selectedPrimeIds: finalIdsA }, months, openingDate, banks, globalConfig);
+          const finalB = calculateResult({ bankId: bankB.id, amount: amtB, selectedPrimeIds: finalIdsB }, months, openingDate, banks, globalConfig);
 
           return {
             total: finalA.total + finalB.total,
@@ -185,7 +181,6 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           scenarios.push(simulateScenario(true, housingBankId === bankA.id));
           scenarios.push(simulateScenario(false, housingBankId === bankA.id));
         } else {
-          // Try all 4 combinations of salary (A/B) and housing (A/B)
           scenarios.push(simulateScenario(true, true));
           scenarios.push(simulateScenario(true, false));
           scenarios.push(simulateScenario(false, true));

@@ -63,7 +63,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
           initial={{ y: 100 }}
           animate={{ y: 0 }}
           transition={{ delay: 0.5, type: "spring", damping: 20 }}
-          className="w-full bg-white rounded-t-[2rem] sm:rounded-[2.5rem] sm:mb-10 p-6 pt-8 shadow-[0_-15px_30px_rgba(0,0,0,0.05)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center z-30"
+          className="w-full bg-white rounded-t-[2rem] sm:rounded-[2.5rem] sm:mb-10 px-6 pt-8 pb-2 shadow-[0_-15px_30px_rgba(0,0,0,0.05)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center z-30"
         >
           <div className="w-full text-center">
             <h1 className="text-xl font-black text-slate-700 leading-tight mb-1 tracking-tighter">
@@ -83,7 +83,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
               ].map((item, i) => (
                 <div key={i} className="flex flex-col items-center">
                   <span className="text-[12px] font-black text-slate-800">{item.label}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter text-slate-400">{item.sub}</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{item.sub}</span>
                 </div>
               ))}
             </div>
@@ -108,7 +108,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
 
             <p 
               onClick={handleAdminTrigger}
-              className="mt-8 text-[10px] font-bold text-slate-200 uppercase tracking-widest cursor-default select-none pb-2"
+              className="mt-2 text-[10px] font-bold text-slate-200 uppercase tracking-widest cursor-default select-none pb-2"
             >
               © 2026 군적금 똑똑이
             </p>

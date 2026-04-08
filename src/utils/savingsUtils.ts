@@ -1,5 +1,3 @@
-import { data } from '../data/data';
-
 export interface PrimeRate {
   id: string;
   group: string;
@@ -9,8 +7,8 @@ export interface PrimeRate {
 }
 
 export interface RateVersion {
-  id: string;         // 버전 식별자 (예: "2026-04-08")
-  effectiveDate: string; // 시행일 (YYYY-MM-DD)
+  id: string;
+  effectiveDate: string;
   baseRates: { range: number[]; rate: number }[];
   primeRates: PrimeRate[];
   maxPrimeRate: number;
@@ -44,66 +42,58 @@ export interface CalcResult {
   effectiveDate: string;
 }
 
-const { globalConfig, banks } = data;
-
 /**
  * 특정 날짜에 해당하는 금리 버전을 찾습니다.
- * 시행일(effectiveDate)이 입력된 날짜와 가장 가까운(과거) 버전을 반환합니다.
  */
 export const getRateVersionForDate = (bank: Bank, date: Date): RateVersion => {
   if (!bank.rateVersions || bank.rateVersions.length === 0) {
     throw new Error(`Bank ${bank.name} has no rate versions.`);
   }
 
-  // 시행일 기준으로 내림차순 정렬
   const sortedVersions = [...bank.rateVersions].sort(
     (a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
   );
   
-  // 입력 날짜보다 이전이거나 같은 시행일 중 가장 최근 것
   const version = sortedVersions.find(v => new Date(v.effectiveDate) <= date);
-  
-  // 만약 입력 날짜가 모든 시행일보다 이전이라면 가장 오래된 버전을 반환
   return version || sortedVersions[sortedVersions.length - 1];
 };
 
+/**
+ * 은행 및 개월 수에 따른 유효한 우대금리 목록을 필터링합니다.
+ */
 export const getFilteredPrimeRates = (bank: Bank, months: number, version: RateVersion) => {
   const today = new Date();
   const kbeventStartDate = new Date('2026-01-26');
   const kbeventEndDate = new Date('2026-07-25');
 
   return version.primeRates.filter(prime => {
-    // KB Event Period Check
     if (prime.id === 'kb_event') {
       const isPeriodValid = today >= kbeventStartDate && today <= kbeventEndDate;
       return isPeriodValid && months >= 3;
     }
-    // KB Card Period Check
-    if (prime.id === 'kb_card') {
-      return months >= 6;
-    }
-    // KB 3-month Minimum Period Check
-    if (bank.id === 'kb' && (prime.id === 'kb_housing' || prime.id === 'kb_social_vulnerable')) {
-      return months >= 3;
-    }
-    // IBK 12-month Minimum Period Check
-    if (prime.id === 'ib_salary') {
-      return months >= 12;
-    }
-    // Hana 3-month Minimum Period Check
-    if (prime.id === 'hana_salary' || prime.id === 'hana_housing') {
-      return months >= 3;
-    }
+    if (prime.id === 'kb_card') return months >= 6;
+    if (bank.id === 'kb' && (prime.id === 'kb_housing' || prime.id === 'kb_social_vulnerable')) return months >= 3;
+    if (prime.id === 'ib_salary') return months >= 12;
+    if (prime.id === 'hana_salary' || prime.id === 'hana_housing') return months >= 3;
     return true;
   });
 };
 
-export const calculateResult = (boxState: BoxState, months: number, openingDate: Date = new Date()): CalcResult => {
-  const bank = (banks as unknown as Bank[]).find(b => b.id === boxState.bankId);
+/**
+ * 최종 수령액 및 금리 상세를 계산합니다.
+ */
+export const calculateResult = (
+  boxState: BoxState, 
+  months: number, 
+  openingDate: Date, 
+  banks: Bank[], 
+  globalConfig: { matchingSupportRate: number }
+): CalcResult => {
+  const bank = banks.find(b => b.id === boxState.bankId);
   
   if (!bank) {
     const principal = boxState.amount * months;
-    const matchingSupport = Math.floor(principal * globalConfig.matchingSupportRate);
+    const matchingSupport = Math.floor(principal * (globalConfig?.matchingSupportRate || 1.0));
     return { 
       principal, 
       bankInterest: 0, 
@@ -136,7 +126,7 @@ export const calculateResult = (boxState: BoxState, months: number, openingDate:
   }
   bankInterest = Math.floor(bankInterest);
   const principal = boxState.amount * months;
-  const matchingSupport = Math.floor(principal * globalConfig.matchingSupportRate);
+  const matchingSupport = Math.floor(principal * (globalConfig?.matchingSupportRate || 1.0));
   const totalMaturity = principal + bankInterest + matchingSupport;
 
   return { 
@@ -154,4 +144,3 @@ export const calculateResult = (boxState: BoxState, months: number, openingDate:
     effectiveDate: version.effectiveDate
   };
 };
-

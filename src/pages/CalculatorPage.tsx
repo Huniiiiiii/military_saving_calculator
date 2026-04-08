@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactGA from 'react-ga4';
-import { data } from '../data/data';
+import type { GlobalData } from '../App';
 import { calculateResult, getFilteredPrimeRates, getRateVersionForDate } from '../utils/savingsUtils';
 import type { BoxState, Bank, CalcResult } from '../utils/savingsUtils';
 
 interface CalculatorPageProps {
+  data: GlobalData;
   selectedBranchId: string;
   months: number;
   openingDate: Date;
@@ -21,6 +22,7 @@ interface CalculatorPageProps {
 }
 
 const CalculatorPage: React.FC<CalculatorPageProps> = ({
+  data,
   selectedBranchId,
   months,
   openingDate,
@@ -36,7 +38,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const { globalConfig, banks, militaryBranches } = data;
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
-  const currentBranch = militaryBranches.find(b => b.id === selectedBranchId) || militaryBranches[0];
+  const currentBranch = militaryBranches.find((b) => b.id === selectedBranchId) || militaryBranches[0];
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -46,13 +48,13 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     );
   };
 
-  const res1 = calculateResult(box1, months, openingDate);
-  const res2 = calculateResult(box2, months, openingDate);
+  const res1 = calculateResult(box1, months, openingDate, banks, globalConfig);
+  const res2 = calculateResult(box2, months, openingDate, banks, globalConfig);
 
   const formatKRW = (val: number) => new Intl.NumberFormat('ko-KR').format(val);
 
   const getSelectedGroups = (boxState: BoxState) => {
-    const bank = (banks as unknown as Bank[]).find(b => b.id === boxState.bankId);
+    const bank = (banks as Bank[]).find(b => b.id === boxState.bankId);
     if (!bank) return [];
     
     const version = getRateVersionForDate(bank, openingDate);
@@ -68,13 +70,11 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const handleAmountInputChange = (boxNum: 1 | 2, value: number) => {
     const otherBox = boxNum === 1 ? box2 : box1;
 
-    // 1. 개별 은행 한도 체크 (30만원)
     if (value > globalConfig.maxDepositPerBank) {
       alert(`한 은행당 최대 ${globalConfig.maxDepositPerBank / 10000}만원까지 납입 가능합니다. (30만원 초과)`);
       return;
     }
 
-    // 2. 전체 합산 한도 체크 (55만원)
     if (value + otherBox.amount > globalConfig.maxTotalMonthlyDeposit) {
       alert(`두 은행 합산 최대 ${globalConfig.maxTotalMonthlyDeposit / 10000}만원까지 납입 가능합니다. (55만원 초과)`);
       return;
@@ -97,7 +97,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     color: 'blue' | 'purple',
     boxNum: 1 | 2
   ) => {
-    const bank = (banks.find(b => b.id === boxState.bankId)) as Bank | undefined;
+    const bank = banks.find(b => b.id === boxState.bankId);
     const badgeBg = color === 'blue' ? 'bg-[#1A5CFF]' : 'bg-[#B035FF]';
     const borderColor = color === 'blue' ? 'border-[#1A5CFF]' : 'border-[#E0B0FF]';
     const textColor = color === 'blue' ? 'text-blue-600' : 'text-purple-600';
@@ -138,8 +138,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
             >
               <option value="" disabled>은행 선택</option>
               {banks.map(b => {
-                const bankObj = b as unknown as Bank;
-                const v = getRateVersionForDate(bankObj, openingDate);
+                const v = getRateVersionForDate(b, openingDate);
                 const maxPrimePct = (v.maxPrimeRate * 100).toFixed(1);
                 return (
                   <option key={b.id} value={b.id} disabled={b.id === otherBankId} className="text-slate-800">
