@@ -93,6 +93,58 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
     }
   };
 
+  // --- Version Handlers ---
+  const handleAddVersion = async () => {
+    if (!selectedBankId || !currentBank) return;
+    
+    const latest = currentBank.rateVersions[0]; // 최신 버전 가져오기
+    const newEffectiveDate = new Date().toISOString().split('T')[0];
+    const newVersionId = crypto.randomUUID(); // 새 UUID 생성
+
+    const newData = { ...fullData };
+    const bank = newData.banks.find((b: Bank) => b.id === selectedBankId);
+    
+    if (bank) {
+      const newVersion: RateVersion = {
+        ...latest,
+        id: newVersionId,
+        effectiveDate: newEffectiveDate,
+      };
+      
+      bank.rateVersions = [newVersion, ...bank.rateVersions];
+      setFullData(newData);
+      setSelectedVersionId(newVersionId);
+      setStep('editor');
+      
+      alert('새로운 금리 버전이 생성되었습니다. 수정 후 [DB 저장]을 눌러주세요.');
+    }
+  };
+
+  const handleDeleteVersion = async (vId: string) => {
+    if (!window.confirm('이 금리 버전을 정말 삭제할까요? DB에서도 즉시 삭제됩니다.')) return;
+    if (!window.confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+    
+    try {
+      const { error } = await supabase.from('rate_versions').delete().eq('id', vId);
+      if (error) throw error;
+
+      const newData = { ...fullData };
+      const bank = newData.banks.find((b: Bank) => b.id === selectedBankId);
+      if (bank) {
+        bank.rateVersions = bank.rateVersions.filter(v => v.id !== vId);
+        setFullData(newData);
+        if (selectedVersionId === vId) {
+          setSelectedVersionId(null);
+          setStep('versions');
+        }
+      }
+      alert('삭제되었습니다.');
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      alert('삭제 실패: ' + msg);
+    }
+  };
+
   // --- Item Handlers ---
   const updateVersionField = <T extends keyof RateVersion>(field: T, value: RateVersion[T]) => {
     const newData = { ...fullData };
@@ -113,6 +165,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
 
   const deleteBaseRate = (index: number) => {
     if (!selectedVersion) return;
+    if (!window.confirm('이 기본 금리 행을 삭제할까요?')) return;
+    if (!window.confirm('한 번 더 확인합니다. 정말 삭제하시겠습니까?')) return;
+    
     const newData = [...selectedVersion.baseRates];
     newData.splice(index, 1);
     updateVersionField('baseRates', newData);
@@ -121,12 +176,15 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
   const addPrimeRate = () => {
     if (!selectedVersion) return;
     const newData = [...selectedVersion.primeRates];
-    newData.push({ id: `prime_${Date.now()}`, group: 'other', label: '새 우대조건', rate: 0.001, footnotes: [] });
+    newData.push({ id: `prime_${new Date().getTime()}`, group: 'other', label: '새 우대조건', rate: 0.001, footnotes: [] });
     updateVersionField('primeRates', newData);
   };
 
   const deletePrimeRate = (id: string) => {
     if (!selectedVersion) return;
+    if (!window.confirm('이 우대 금리 항목을 삭제할까요?')) return;
+    if (!window.confirm('항목을 삭제하시겠습니까? 저장 버튼을 눌러야 최종 반영됩니다.')) return;
+    
     const newData = selectedVersion.primeRates.filter(p => p.id !== id);
     updateVersionField('primeRates', newData);
   };
@@ -186,7 +244,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
         <aside className={`w-full md:w-80 bg-[#FBFCFF] border-r border-slate-100 p-4 md:p-6 space-y-4 overflow-y-auto ${step !== 'versions' ? 'hidden md:block' : 'block'}`}>
           <div className="flex items-center justify-between mb-4 px-1">
             <div className="flex items-center gap-2"><History size={14} className="text-blue-500" /><p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Versions</p></div>
-            <button onClick={() => alert('새 버전 추가 기능은 준비 중입니다. 기존 버전을 수정해 주세요.')} className="p-2 bg-blue-50 text-blue-600 rounded-xl"><Plus size={18} /></button>
+            <button onClick={handleAddVersion} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"><Plus size={18} /></button>
           </div>
           <div className="space-y-3">
             {currentBank?.rateVersions.map((v) => (
@@ -195,6 +253,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
                   <Calendar size={14} className={selectedVersionId === v.id ? 'text-blue-500' : 'text-slate-400'} />
                   <span className={`text-[15px] font-black ${selectedVersionId === v.id ? 'text-slate-900' : 'text-slate-600'}`}>{v.effectiveDate}</span>
                 </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleDeleteVersion(v.id); }}
+                  className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all md:opacity-100"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             ))}
           </div>
