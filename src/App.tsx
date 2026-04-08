@@ -80,7 +80,7 @@ const App: React.FC = () => {
               effectiveDate: v.effective_date,
               maxPrimeRate: v.max_prime_rate,
               baseRates: v.base_rates,
-              prime_rates: v.prime_rates
+              primeRates: v.prime_rates
             }))
         }));
 
