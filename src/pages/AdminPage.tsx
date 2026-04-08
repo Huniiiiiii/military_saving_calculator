@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Plus, Trash2, Save, Lock, ChevronRight, Calendar, LayoutGrid, History, Edit3, LogOut } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Save, Lock, ChevronRight, Calendar, LayoutGrid, History, Edit3, LogOut, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import type { GlobalData } from '../App';
@@ -166,7 +166,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
   const deleteBaseRate = (index: number) => {
     if (!selectedVersion) return;
     if (!window.confirm('이 기본 금리 행을 삭제할까요?')) return;
-    if (!window.confirm('한 번 더 확인합니다. 정말 삭제하시겠습니까?')) return;
     
     const newData = [...selectedVersion.baseRates];
     newData.splice(index, 1);
@@ -183,7 +182,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
   const deletePrimeRate = (id: string) => {
     if (!selectedVersion) return;
     if (!window.confirm('이 우대 금리 항목을 삭제할까요?')) return;
-    if (!window.confirm('항목을 삭제하시겠습니까? 저장 버튼을 눌러야 최종 반영됩니다.')) return;
     
     const newData = selectedVersion.primeRates.filter(p => p.id !== id);
     updateVersionField('primeRates', newData);
@@ -255,9 +253,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
                 </div>
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleDeleteVersion(v.id); }}
-                  className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all md:opacity-100"
+                  className="absolute top-4 right-4 p-3 text-slate-300 hover:text-red-500 transition-all active:scale-90"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={18} />
                 </button>
               </div>
             ))}
@@ -267,7 +265,15 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
         <section className={`flex-1 bg-white p-4 md:p-10 overflow-y-auto ${step !== 'editor' ? 'hidden md:block' : 'block'}`}>
           {selectedVersion ? (
             <div className="max-w-3xl mx-auto space-y-10 pb-20">
-              <header><div className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest mb-1"><Edit3 size={12} /> Editing Mode</div><h2 className="text-2xl font-black text-slate-900">{currentBank?.name}</h2></header>
+              <header>
+                <div className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest mb-1"><Edit3 size={12} /> Editing Mode</div>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{currentBank?.name}</h2>
+                  <a href={currentBank?.link} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors">
+                    <ExternalLink size={18} />
+                  </a>
+                </div>
+              </header>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
                 <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">시행 시작일</label><input type="date" value={selectedVersion.effectiveDate} onChange={(e) => updateVersionField('effectiveDate', e.target.value)} className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" /></div>
                 <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">최대 우대금리 (예: 0.055)</label><input type="number" step="0.001" value={selectedVersion.maxPrimeRate} onChange={(e) => updateVersionField('maxPrimeRate', parseFloat(e.target.value))} className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" /></div>
@@ -301,7 +307,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
                       {pr.footnotes?.map((note, fIdx) => (
                         <div key={fIdx} className="flex gap-2">
                           <textarea value={note} onChange={(e) => { const nd = [...selectedVersion.primeRates]; nd[pIdx].footnotes![fIdx] = e.target.value; updateVersionField('primeRates', nd); }} className="flex-1 bg-slate-50 rounded-xl p-2 text-[10px] font-medium min-h-[50px] outline-none" />
-                          <button onClick={() => { const nd = [...selectedVersion.primeRates]; nd[pIdx].footnotes!.splice(fIdx, 1); updateVersionField('primeRates', nd); }} className="p-1 self-start text-slate-300"><Trash2 size={12} /></button>
+                          <button onClick={() => { 
+                            if (!window.confirm('이 설명을 삭제할까요?')) return;
+                            const nd = [...selectedVersion.primeRates]; 
+                            nd[pIdx].footnotes!.splice(fIdx, 1); 
+                            updateVersionField('primeRates', nd); 
+                          }} className="p-1 self-start text-slate-300">
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       ))}
                     </div>
