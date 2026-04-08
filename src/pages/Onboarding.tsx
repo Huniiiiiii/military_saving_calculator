@@ -6,9 +6,12 @@ import onboardingCh from '../assets/onboarding_ch.webp';
 
 interface OnboardingProps {
   onStart: () => void;
+  onAdmin: () => void;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
+  const [clickCount, setClickCount] = React.useState(0);
+
   const handleStart = () => {
     if (import.meta.env.PROD) {
       ReactGA.event({
@@ -18,6 +21,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
       });
     }
     onStart();
+  };
+
+  const handleAdminTrigger = () => {
+    const nextCount = clickCount + 1;
+    if (nextCount >= 5) {
+      onAdmin();
+      setClickCount(0);
+    } else {
+      setClickCount(nextCount);
+    }
   };
 
   return (
@@ -92,6 +105,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
               <span className="text-[11px] font-bold border-b border-slate-300">장병내일준비적금이란?</span>
               <ChevronRight size={12} strokeWidth={3} />
             </a>
+
+            <p 
+              onClick={handleAdminTrigger}
+              className="mt-8 text-[10px] font-bold text-slate-200 uppercase tracking-widest cursor-default select-none pb-2"
+            >
+              © 2026 군적금 똑똑이
+            </p>
           </div>
         </motion.div>
       </div>

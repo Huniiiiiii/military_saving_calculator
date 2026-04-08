@@ -10,6 +10,7 @@ import type { BoxState } from '../utils/savingsUtils';
 interface ResultPageProps {
   selectedBranchId: string;
   months: number;
+  openingDate: Date;
   box1: BoxState;
   box2: BoxState;
   isRecommended?: boolean;
@@ -24,6 +25,7 @@ interface ResultPageProps {
 const ResultPage: React.FC<ResultPageProps> = ({
   selectedBranchId,
   months,
+  openingDate,
   box1,
   box2,
   isRecommended,
@@ -39,8 +41,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
   const captureRef = useRef<HTMLDivElement>(null);
   const currentBranch = militaryBranches.find(b => b.id === selectedBranchId) || militaryBranches[0];
 
-  const res1 = calculateResult(box1, months);
-  const res2 = calculateResult(box2, months);
+  const res1 = calculateResult(box1, months, openingDate);
+  const res2 = calculateResult(box2, months, openingDate);
   const totalPrincipal = res1.principal + res2.principal;
   const totalInterest = res1.bankInterest + res2.bankInterest;
   const totalMatching = res1.matchingSupport + res2.matchingSupport;
@@ -154,6 +156,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
     }
   };
 
+  const formattedOpeningDate = openingDate.toISOString().split('T')[0];
+
   return (
     <motion.div 
       initial={{ opacity: 0, x: 20 }} 
@@ -179,9 +183,11 @@ const ResultPage: React.FC<ResultPageProps> = ({
 
         <div className="flex-1 px-4 pt-4 pb-20">
           <div className="flex justify-between items-center mb-4 ml-1">
-            <p className="text-[10px] font-bold text-slate-400">
-              내용은 2026.04.01. 기준이에요
-            </p>
+            <div className="flex flex-col">
+              <p className="text-[12px] font-bold text-slate-500">
+                입대일: {formattedOpeningDate}
+              </p>
+            </div>
             {!isRecommended && (
               <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
                                     <Calendar size={12} className="shrink-0" /><span className="leading-none">{months}개월</span>
@@ -402,10 +408,15 @@ const ResultPage: React.FC<ResultPageProps> = ({
                           className="overflow-hidden"
                         >
                           <div className="mt-6 pt-6 border-t border-dashed border-slate-200">
-                            <h5 className="text-[13px] font-black text-slate-800 mb-4 flex items-center gap-2">
-                              <CheckCircle2 size={16} className="text-green-500" />
-                              적용된 우대금리 상세
-                            </h5>
+                            <div className="flex items-center justify-between mb-4">
+                              <h5 className="text-[13px] font-black text-slate-800 flex items-center gap-2">
+                                <CheckCircle2 size={16} className="text-green-500" />
+                                적용된 우대금리 상세
+                              </h5>
+                              <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                                {res.effectiveDate} 기준
+                              </span>
+                            </div>
                             
                             {res.selectedPrimes.length > 0 ? (
                               <div className="space-y-4">

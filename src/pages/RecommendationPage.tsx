@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, Sparkles, Building2, UserCheck, Zap, HelpCircle, Utensils, Smartphone, Film, Shield, Car } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import { data } from '../data/data';
-import { calculateResult, getFilteredPrimeRates } from '../utils/savingsUtils';
+import { calculateResult, getFilteredPrimeRates, getRateVersionForDate } from '../utils/savingsUtils';
 import type { BoxState, Bank } from '../utils/savingsUtils';
 
 export interface RecommendationResult {
@@ -17,12 +17,14 @@ export interface RecommendationResult {
 
 interface RecommendationPageProps {
   months: number;
+  openingDate: Date;
   onBack: () => void;
   onComplete: (result: RecommendationResult) => void;
 }
 
 const RecommendationPage: React.FC<RecommendationPageProps> = ({
   months,
+  openingDate,
   onBack,
   onComplete
 }) => {
@@ -64,7 +66,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   const findBestCombination = () => {
     // Helper to get optimal prime rate IDs for a bank
     const getOptimalIds = (bank: Bank, canTakeSalary: boolean, canTakeHousing: boolean) => {
-      const filtered = getFilteredPrimeRates(bank, months);
+      const version = getRateVersionForDate(bank, openingDate);
+      const filtered = getFilteredPrimeRates(bank, months, version);
       return filtered
         .filter(p => {
           if (p.group === 'salary') return canTakeSalary;
@@ -77,9 +80,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
 
     if (hanaSalary) {
       // 1. Hana Bank is fixed as one bank
-      const bankHana = banks.find(b => b.id === 'hana') as Bank;
-      
-      // Hana Bank MUST take salary prime
+      const bankHana = (banks as unknown as Bank[]).find(b => b.id === 'hana') as Bank;
       
       // We'll evaluate the second bank first to see where housing fits best if hasHousing is false
       let overallBest = {
@@ -88,15 +89,15 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
         totalMaturity: 0
       };
 
-      banks.forEach(otherBank => {
+      (banks as unknown as Bank[]).forEach(otherBank => {
         if (otherBank.id === 'hana') return;
 
         const simulateHousing = (housingToHana: boolean) => {
           const idsHana = getOptimalIds(bankHana, true, housingToHana);
           const idsOther = getOptimalIds(otherBank, false, !housingToHana && (hasHousing ? housingBankId === otherBank.id : true));
 
-          const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months);
-          const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months);
+          const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months, openingDate);
+          const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months, openingDate);
 
           const rateHana = resHana.baseRate + resHana.primeRate;
           const rateOther = resOther.baseRate + resOther.primeRate;
@@ -104,8 +105,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           const amtHana = rateHana >= rateOther ? 300000 : 250000;
           const amtOther = rateHana >= rateOther ? 250000 : 300000;
 
-          const finalHana = calculateResult({ bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }, months);
-          const finalOther = calculateResult({ bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther }, months);
+          const finalHana = calculateResult({ bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }, months, openingDate);
+          const finalOther = calculateResult({ bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther }, months, openingDate);
 
           return {
             total: finalHana.total + finalOther.total,
@@ -137,10 +138,11 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
 
     } else {
       // 2. No fixed Hana Bank salary. Find absolute best.
+      const bankList = banks as unknown as Bank[];
       const bankPairs: [Bank, Bank][] = [];
-      for (let i = 0; i < banks.length; i++) {
-        for (let j = i + 1; j < banks.length; j++) {
-          bankPairs.push([banks[i], banks[j]] as [Bank, Bank]);
+      for (let i = 0; i < bankList.length; i++) {
+        for (let j = i + 1; j < bankList.length; j++) {
+          bankPairs.push([bankList[i], bankList[j]] as [Bank, Bank]);
         }
       }
 
@@ -159,8 +161,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           const finalIdsA = getOptimalIds(bankA, salaryAtA, actualHousingAtA);
           const finalIdsB = getOptimalIds(bankB, !salaryAtA, actualHousingAtB);
 
-          const resA = calculateResult({ bankId: bankA.id, amount: 10000, selectedPrimeIds: finalIdsA }, months);
-          const resB = calculateResult({ bankId: bankB.id, amount: 10000, selectedPrimeIds: finalIdsB }, months);
+          const resA = calculateResult({ bankId: bankA.id, amount: 10000, selectedPrimeIds: finalIdsA }, months, openingDate);
+          const resB = calculateResult({ bankId: bankB.id, amount: 10000, selectedPrimeIds: finalIdsB }, months, openingDate);
 
           const rateA = resA.baseRate + resA.primeRate;
           const rateB = resB.baseRate + resB.primeRate;
@@ -168,8 +170,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           const amtA = rateA >= rateB ? 300000 : 250000;
           const amtB = rateA >= rateB ? 250000 : 300000;
 
-          const finalA = calculateResult({ bankId: bankA.id, amount: amtA, selectedPrimeIds: finalIdsA }, months);
-          const finalB = calculateResult({ bankId: bankB.id, amount: amtB, selectedPrimeIds: finalIdsB }, months);
+          const finalA = calculateResult({ bankId: bankA.id, amount: amtA, selectedPrimeIds: finalIdsA }, months, openingDate);
+          const finalB = calculateResult({ bankId: bankB.id, amount: amtB, selectedPrimeIds: finalIdsB }, months, openingDate);
 
           return {
             total: finalA.total + finalB.total,

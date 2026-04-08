@@ -8,6 +8,8 @@ interface InputPageProps {
   onBranchChange: (id: string) => void;
   months: number;
   onMonthsChange: (val: number) => void;
+  openingDate: string;
+  onOpeningDateChange: (date: string) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -17,6 +19,8 @@ const InputPage: React.FC<InputPageProps> = ({
   onBranchChange,
   months,
   onMonthsChange,
+  openingDate,
+  onOpeningDateChange,
   onNext,
   onBack
 }) => {
@@ -43,7 +47,7 @@ const InputPage: React.FC<InputPageProps> = ({
           <div className="w-11" />
         </header>
 
-        <div className="flex-1 w-full px-5 py-6 flex flex-col">
+        <div className="flex-1 w-full px-5 py-6 flex flex-col overflow-y-auto">
           {/* 1. 군종 선택 */}
           <section className="mb-8">
             <h2 className="text-[13px] font-bold text-slate-500 mb-3 ml-1">군종 선택</h2>
@@ -72,7 +76,32 @@ const InputPage: React.FC<InputPageProps> = ({
             </div>
           </section>
 
-          {/* 2. Blue Card for Months Input */}
+          {/* 2. 입대일/가입일 선택 */}
+          <section className="mb-8">
+            <h2 className="text-[13px] font-bold text-slate-500 mb-3 ml-1">입대일</h2>
+            <div className="relative">
+              <input
+                type="date"
+                value={openingDate}
+                min="2026-03-30"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val && val < '2026-03-30') {
+                    alert('2026년 3월 30일 이전 날짜는 선택할 수 없습니다.');
+                    return;
+                  }
+                  onOpeningDateChange(val);
+                }}
+                className="w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 font-bold text-slate-900 focus:ring-2 focus:ring-[#2272eb] focus:border-transparent transition-all shadow-sm"
+              />
+              <p className="mt-2 ml-1 text-[11px] text-slate-400 leading-relaxed">
+                * 가입 시점의 금리를 기준으로 계산하기 위해 필요해요.<br/>
+                (2026년 3월 30일 이후 입대자만 지원해요.)
+              </p>
+            </div>
+          </section>
+
+          {/* 3. Blue Card for Months Input */}
           <section className="relative px-1 mt-1">
             <div className="w-full bg-[#2272eb] rounded-[2rem] py-6 px-6 flex flex-col items-center shadow-[0_15px_35px_rgba(26,92,255,0.15)]">
               <p className="text-blue-100 text-[10px] font-medium mb-1">자신의 복무기간에 맞는</p>
@@ -93,7 +122,7 @@ const InputPage: React.FC<InputPageProps> = ({
         </div>
 
         {/* Bottom CTA Button */}
-        <div className="w-full p-5 pb-8 space-y-3">
+        <div className="w-full p-5 pb-8 space-y-3 bg-[#F8FAFF]">
           <button
             onClick={onNext}
             disabled={months <= 0}
@@ -106,5 +135,6 @@ const InputPage: React.FC<InputPageProps> = ({
     </motion.div>
   );
 };
+
 
 export default InputPage;

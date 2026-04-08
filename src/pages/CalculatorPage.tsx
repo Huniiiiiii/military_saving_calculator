@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import { data } from '../data/data';
-import { calculateResult, getFilteredPrimeRates } from '../utils/savingsUtils';
+import { calculateResult, getFilteredPrimeRates, getRateVersionForDate } from '../utils/savingsUtils';
 import type { BoxState, Bank, CalcResult } from '../utils/savingsUtils';
 
 interface CalculatorPageProps {
   selectedBranchId: string;
   months: number;
+  openingDate: Date;
   box1: BoxState;
   box2: BoxState;
   setBox1: React.Dispatch<React.SetStateAction<BoxState>>;
@@ -22,6 +23,7 @@ interface CalculatorPageProps {
 const CalculatorPage: React.FC<CalculatorPageProps> = ({
   selectedBranchId,
   months,
+  openingDate,
   box1,
   box2,
   setBox1,
@@ -44,21 +46,24 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     );
   };
 
-  const res1 = calculateResult(box1, months);
-  const res2 = calculateResult(box2, months);
+  const res1 = calculateResult(box1, months, openingDate);
+  const res2 = calculateResult(box2, months, openingDate);
 
   const formatKRW = (val: number) => new Intl.NumberFormat('ko-KR').format(val);
 
   const getSelectedGroups = (boxState: BoxState) => {
-    const bank = banks.find(b => b.id === boxState.bankId) as Bank | undefined;
+    const bank = (banks as unknown as Bank[]).find(b => b.id === boxState.bankId);
     if (!bank) return [];
-    return bank.primeRates
+    
+    const version = getRateVersionForDate(bank, openingDate);
+    return version.primeRates
       .filter(p => boxState.selectedPrimeIds.includes(p.id))
       .map(p => p.group);
   };
 
   const box1Groups = getSelectedGroups(box1);
   const box2Groups = getSelectedGroups(box2);
+
 
   const handleAmountInputChange = (boxNum: 1 | 2, value: number) => {
     const otherBox = boxNum === 1 ? box2 : box1;
@@ -97,7 +102,8 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const borderColor = color === 'blue' ? 'border-[#1A5CFF]' : 'border-[#E0B0FF]';
     const textColor = color === 'blue' ? 'text-blue-600' : 'text-purple-600';
 
-    const filteredPrimeRates = bank ? getFilteredPrimeRates(bank, months) : [];
+    const version = bank ? getRateVersionForDate(bank, openingDate) : null;
+    const filteredPrimeRates = bank && version ? getFilteredPrimeRates(bank, months, version) : [];
 
     return (
       <div className={`w-full rounded-[1.5rem] border-2 ${borderColor} p-5 mb-5 bg-white shadow-sm`}>
@@ -132,8 +138,9 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
             >
               <option value="" disabled>은행 선택</option>
               {banks.map(b => {
-                
-                const maxPrimePct = (b.maxPrimeRate * 100).toFixed(1);
+                const bankObj = b as unknown as Bank;
+                const v = getRateVersionForDate(bankObj, openingDate);
+                const maxPrimePct = (v.maxPrimeRate * 100).toFixed(1);
                 return (
                   <option key={b.id} value={b.id} disabled={b.id === otherBankId} className="text-slate-800">
                     {b.name} [최대 우대 {maxPrimePct}%] {b.id === otherBankId ? '(선택됨)' : ''}
@@ -166,12 +173,13 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
         <div className="space-y-2">
           <div className="flex justify-between items-center mb-1 px-1">
             <p className="text-slate-500 text-[10px] font-bold uppercase tracking-tight">우대금리 조건</p>
-            {bank && (
+            {bank && version && (
               <span className="text-[10px] font-bold text-slate-400">
-                최대 +{(bank.maxPrimeRate * 100).toFixed(1)}%
+                최대 +{(version.maxPrimeRate * 100).toFixed(1)}%
               </span>
             )}
           </div>
+
           {!bank ? (
              <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
                <p className="text-[11px] font-bold text-slate-400">은행을 먼저 선택해주세요</p>
@@ -288,9 +296,11 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
         {/* Content (Scrollable) */}
         <div className="flex-1 px-4 py-4 pb-80">
-          <p className="text-[10px] font-bold text-slate-400 mb-2 ml-1">
-            내용은 2026.04.01. 기준이에요
-          </p>
+          <div className="flex flex-col mb-2 ml-1">
+            <p className="text-[12px] font-bold text-slate-500">
+              입대일: {openingDate.toISOString().split('T')[0]}
+            </p>
+          </div>
 
           {/* User Selection Summary */}
           <div className="mb-4 flex items-center justify-between bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
