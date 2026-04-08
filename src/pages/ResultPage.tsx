@@ -75,7 +75,9 @@ const ResultPage: React.FC<ResultPageProps> = ({
     await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
-      const fileName = `military-savings-${userName || 'result'}.png`;
+      const fileName = userName 
+        ? `${userName}의 군적금 계산결과.png` 
+        : '군적금똑똑이 계산결과.png';
       const blob = await htmlToImage.toBlob(captureRef.current, {
         backgroundColor: '#F8FAFF',
         style: {
@@ -111,7 +113,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
         console.error('Error saving image:', error);
-        alert('이미지 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        alert('이미지 저장 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
       }
     } finally {
       setIsCapturing(false);
@@ -144,9 +146,9 @@ const ResultPage: React.FC<ResultPageProps> = ({
         // Fallback: Copy to clipboard
         try {
           await navigator.clipboard.writeText(window.location.origin);
-          alert('서비스 링크가 클립보드에 복사되었습니다.');
+          alert('서비스 링크가 클립보드에 복사했어요.');
         } catch {
-          alert('링크 복사에 실패했습니다.');
+          alert('링크 복사에 실패했어요.');
         }
       }
     }
@@ -193,7 +195,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
               <span className="text-xl font-black text-slate-900">
                 {userName ? `${userName}님` : 'OOO님'}의 
               </span>
-              <span className="text-lg font-bold text-slate-600 ml-1">계산 결과입니다</span>
+              <span className="text-lg font-bold text-slate-600 ml-1">계산 결과에요</span>
             </div>
           )}
 
@@ -202,7 +204,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
             <div className="mb-6">
               <div className="mb-2.5 bg-blue-600 rounded-xl p-3 flex items-center gap-2 text-white shadow-lg shadow-blue-200">
                 <Sparkles size={18} />
-                <span className="text-xs font-black">AI 기반 최적의 조합을 찾았어요</span>
+                <span className="text-xs font-black">AI 기반 최적의 조합을 찾았어요!</span>
               </div>
               {recommendationInfo && (
                 <div className="flex flex-wrap gap-1.5 ml-1">
@@ -454,12 +456,16 @@ const ResultPage: React.FC<ResultPageProps> = ({
 
             {/* Link Watermark (only visible during capture) */}
             {isCapturing && (
-              <div className="pt-10 pb-4 text-center">
-                <p className="text-[13px] font-bold text-slate-400">
-                  나의 장병내일준비적금 결과가 궁금하다면?
+              <div className="pt-12 pb-10 flex flex-col items-center border-t border-slate-100 mt-8 bg-slate-50/30">
+                <p className="text-[13px] font-bold text-slate-400 mb-5">
+                  내 장병내일준비적금 결과가 궁금하다면?
                 </p>
-                <p className="text-[15px] font-black text-blue-600 mt-1">
-                  {window.location.hostname}
+                <div className="flex items-center gap-2.5 mb-4">
+                  <img src="/web_favicon.webp" alt="Logo" className="w-10 h-10 rounded-xl shadow-sm" />
+                  <span className="text-2xl font-black text-slate-900 tracking-tight">군적금 똑똑이</span>
+                </div>
+                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                  © 2026 군적금 똑똑이. ALL RIGHTS RESERVED.
                 </p>
               </div>
             )}
