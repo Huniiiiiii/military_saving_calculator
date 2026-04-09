@@ -4,6 +4,9 @@ export interface PrimeRate {
   label: string;
   rate: number;
   footnotes?: string[];
+  min_months?: number;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface RateVersion {
@@ -61,20 +64,30 @@ export const getRateVersionForDate = (bank: Bank, date: Date): RateVersion => {
 /**
  * 은행 및 개월 수에 따른 유효한 우대금리 목록을 필터링합니다.
  */
-export const getFilteredPrimeRates = (bank: Bank, months: number, version: RateVersion) => {
+export const getFilteredPrimeRates = (_bank: Bank, months: number, version: RateVersion) => {
   const today = new Date();
-  const kbeventStartDate = new Date('2026-01-26');
-  const kbeventEndDate = new Date('2026-07-25');
+  today.setHours(0, 0, 0, 0);
 
   return version.primeRates.filter(prime => {
-    if (prime.id === 'kb_event') {
-      const isPeriodValid = today >= kbeventStartDate && today <= kbeventEndDate;
-      return isPeriodValid && months >= 3;
+    // 1. 최소 개월 수 조건 확인
+    if (prime.min_months && months < prime.min_months) {
+      return false;
     }
-    if (prime.id === 'kb_card') return months >= 6;
-    if (bank.id === 'kb' && (prime.id === 'kb_housing' || prime.id === 'kb_social_vulnerable')) return months >= 3;
-    if (prime.id === 'ib_salary') return months >= 12;
-    if (prime.id === 'hana_salary' || prime.id === 'hana_housing') return months >= 3;
+
+    // 2. 이벤트 기간 조건 확인 (시작일)
+    if (prime.start_date) {
+      const startDate = new Date(prime.start_date);
+      startDate.setHours(0, 0, 0, 0);
+      if (today < startDate) return false;
+    }
+
+    // 3. 이벤트 기간 조건 확인 (종료일)
+    if (prime.end_date) {
+      const endDate = new Date(prime.end_date);
+      endDate.setHours(23, 59, 59, 999);
+      if (today > endDate) return false;
+    }
+
     return true;
   });
 };

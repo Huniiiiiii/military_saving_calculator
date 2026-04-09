@@ -187,7 +187,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
               <p className="text-[11px] font-bold text-slate-400">6개월 미만은 해당사항 없음</p>
             </div>
-          ) : (bank.id === 'kb' || bank.id === 'woori') && months < 3 ? (
+          ) : (bank.id === 'kb' && months < 3) ? (
             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
               <p className="text-[11px] font-bold text-slate-400">3개월 미만은 해당사항 없음</p>
             </div>
