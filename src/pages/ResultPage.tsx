@@ -158,6 +158,13 @@ const ResultPage: React.FC<ResultPageProps> = ({
 
   const formattedOpeningDate = openingDate.toISOString().split('T')[0];
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const opening = new Date(openingDate);
+  opening.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((opening.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const showEnlistmentWarning = diffDays >= 21;
+
   return (
     <motion.div 
       initial={{ opacity: 0, x: 20 }} 
@@ -182,11 +189,19 @@ const ResultPage: React.FC<ResultPageProps> = ({
         </header>
 
         <div className="flex-1 px-4 pt-4 pb-20">
-          <div className="flex justify-between items-center mb-4 ml-1">
+          <div className="flex justify-between items-start mb-4 ml-1">
             <div className="flex flex-col">
               <p className="text-[12px] font-bold text-slate-500">
                 입대일: {formattedOpeningDate}
               </p>
+              {showEnlistmentWarning && (
+                <div className="mt-2 flex gap-1.5 items-start bg-amber-50/50 p-2 rounded-lg border border-amber-100/50 max-w-[360px]">
+                  <Info size={12} className="text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-[10px] font-medium text-amber-600 leading-tight">
+                    훈련소 입소 며칠 전, 최신 금리 정보를 꼭 다시 확인해 주세요.
+                  </p>
+                </div>
+              )}
             </div>
             {!isRecommended && (
               <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
