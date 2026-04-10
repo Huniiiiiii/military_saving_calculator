@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, Sparkles, Building2, UserCheck, Zap, HelpCircle, Utensils, Smartphone, Film, Shield, Car } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import type { GlobalData } from '../App';
-import { calculateResult, getFilteredPrimeRates, getRateVersionForDate } from '../utils/savingsUtils';
+import { calculateResult, getFilteredPrimeRates, getRateVersionForDate, getEffectiveConfig } from '../utils/savingsUtils';
 import type { BoxState, Bank } from '../utils/savingsUtils';
 
 export interface RecommendationResult {
@@ -38,7 +38,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   const [hanaSalary, setHanaSalary] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { banks, globalConfig } = data;
+  const { banks, globalConfigs } = data;
+  const config = getEffectiveConfig(globalConfigs, openingDate.toISOString().split('T')[0]);
 
   const handleStartAnalysis = () => {
     if (import.meta.env.PROD) {
@@ -66,6 +67,9 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   };
 
   const findBestCombination = () => {
+    const primaryAmount = config.max_deposit_per_bank;
+    const secondaryAmount = config.max_total_monthly_deposit - config.max_deposit_per_bank;
+
     const getOptimalIds = (bank: Bank, canTakeSalary: boolean, canTakeHousing: boolean) => {
       const version = getRateVersionForDate(bank, openingDate);
       const filtered = getFilteredPrimeRates(bank, months, version);
@@ -95,17 +99,17 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           const idsHana = getOptimalIds(bankHana, true, housingToHana);
           const idsOther = getOptimalIds(otherBank, false, !housingToHana && (hasHousing ? housingBankId === otherBank.id : true));
 
-          const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months, openingDate, banks, globalConfig);
-          const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months, openingDate, banks, globalConfig);
+          const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months, openingDate, banks, config);
+          const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months, openingDate, banks, config);
 
           const rateHana = resHana.baseRate + resHana.primeRate;
           const rateOther = resOther.baseRate + resOther.primeRate;
 
-          const amtHana = rateHana >= rateOther ? 300000 : 250000;
-          const amtOther = rateHana >= rateOther ? 250000 : 300000;
+          const amtHana = rateHana >= rateOther ? primaryAmount : secondaryAmount;
+          const amtOther = rateHana >= rateOther ? secondaryAmount : primaryAmount;
 
-          const finalHana = calculateResult({ bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }, months, openingDate, banks, globalConfig);
-          const finalOther = calculateResult({ bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther }, months, openingDate, banks, globalConfig);
+          const finalHana = calculateResult({ bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }, months, openingDate, banks, config);
+          const finalOther = calculateResult({ bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther }, months, openingDate, banks, config);
 
           return {
             total: finalHana.total + finalOther.total,
@@ -157,17 +161,17 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           const finalIdsA = getOptimalIds(bankA, salaryAtA, actualHousingAtA);
           const finalIdsB = getOptimalIds(bankB, !salaryAtA, actualHousingAtB);
 
-          const resA = calculateResult({ bankId: bankA.id, amount: 10000, selectedPrimeIds: finalIdsA }, months, openingDate, banks, globalConfig);
-          const resB = calculateResult({ bankId: bankB.id, amount: 10000, selectedPrimeIds: finalIdsB }, months, openingDate, banks, globalConfig);
+          const resA = calculateResult({ bankId: bankA.id, amount: 10000, selectedPrimeIds: finalIdsA }, months, openingDate, banks, config);
+          const resB = calculateResult({ bankId: bankB.id, amount: 10000, selectedPrimeIds: finalIdsB }, months, openingDate, banks, config);
 
           const rateA = resA.baseRate + resA.primeRate;
           const rateB = resB.baseRate + resB.primeRate;
 
-          const amtA = rateA >= rateB ? 300000 : 250000;
-          const amtB = rateA >= rateB ? 250000 : 300000;
+          const amtA = rateA >= rateB ? primaryAmount : secondaryAmount;
+          const amtB = rateA >= rateB ? secondaryAmount : primaryAmount;
 
-          const finalA = calculateResult({ bankId: bankA.id, amount: amtA, selectedPrimeIds: finalIdsA }, months, openingDate, banks, globalConfig);
-          const finalB = calculateResult({ bankId: bankB.id, amount: amtB, selectedPrimeIds: finalIdsB }, months, openingDate, banks, globalConfig);
+          const finalA = calculateResult({ bankId: bankA.id, amount: amtA, selectedPrimeIds: finalIdsA }, months, openingDate, banks, config);
+          const finalB = calculateResult({ bankId: bankB.id, amount: amtB, selectedPrimeIds: finalIdsB }, months, openingDate, banks, config);
 
           return {
             total: finalA.total + finalB.total,

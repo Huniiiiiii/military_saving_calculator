@@ -1,3 +1,19 @@
+export interface GlobalConfig {
+  id: number;
+  max_total_monthly_deposit: number;
+  max_deposit_per_bank: number;
+  matching_support_rate: number;
+  tax_rate: number;
+  version: string;
+  effective_day_config: string;
+}
+
+// Helper to get effective config for a given date
+export const getEffectiveConfig = (configs: GlobalConfig[], date: string): GlobalConfig => {
+  const effective = configs.find(c => c.effective_day_config <= date);
+  return effective || configs[configs.length - 1];
+};
+
 export interface PrimeRate {
   id: string;
   group: string;
@@ -100,13 +116,13 @@ export const calculateResult = (
   months: number, 
   openingDate: Date, 
   banks: Bank[], 
-  globalConfig: { matchingSupportRate: number }
+  config: GlobalConfig
 ): CalcResult => {
   const bank = banks.find(b => b.id === boxState.bankId);
   
   if (!bank) {
     const principal = boxState.amount * months;
-    const matchingSupport = Math.floor(principal * (globalConfig?.matchingSupportRate || 1.0));
+    const matchingSupport = Math.floor(principal * (config?.matching_support_rate || 1.0));
     return { 
       principal, 
       bankInterest: 0, 
@@ -137,14 +153,19 @@ export const calculateResult = (
     const remainingMonths = months - i + 1;
     bankInterest += boxState.amount * (remainingMonths / 12) * (baseRate + appliedPrimeRate);
   }
-  bankInterest = Math.floor(bankInterest);
+  
+  // Apply tax
+  const tax = bankInterest * (config?.tax_rate || 0);
+  const netBankInterest = Math.floor(bankInterest - tax);
+
   const principal = boxState.amount * months;
-  const matchingSupport = Math.floor(principal * (globalConfig?.matchingSupportRate || 1.0));
-  const totalMaturity = principal + bankInterest + matchingSupport;
+  // Matching support is typically based on principal + pre-tax interest
+  const matchingSupport = Math.floor((principal + bankInterest) * (config?.matching_support_rate || 1.0));
+  const totalMaturity = principal + netBankInterest + matchingSupport;
 
   return { 
     principal, 
-    bankInterest, 
+    bankInterest: netBankInterest, 
     matchingSupport, 
     total: totalMaturity, 
     baseRate,

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import type { GlobalData } from '../App';
-import { calculateResult, getFilteredPrimeRates, getRateVersionForDate } from '../utils/savingsUtils';
+import { calculateResult, getFilteredPrimeRates, getRateVersionForDate, getEffectiveConfig } from '../utils/savingsUtils';
 import type { BoxState, Bank, CalcResult } from '../utils/savingsUtils';
 
 interface CalculatorPageProps {
@@ -35,7 +35,9 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
   onReset,
   onShowDetails
 }) => {
-  const { globalConfig, banks, militaryBranches } = data;
+  const { globalConfigs, banks, militaryBranches } = data;
+  const config = getEffectiveConfig(globalConfigs, openingDate.toISOString().split('T')[0]);
+
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
   const currentBranch = militaryBranches.find((b) => b.id === selectedBranchId) || militaryBranches[0];
@@ -48,8 +50,8 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     );
   };
 
-  const res1 = calculateResult(box1, months, openingDate, banks, globalConfig);
-  const res2 = calculateResult(box2, months, openingDate, banks, globalConfig);
+  const res1 = calculateResult(box1, months, openingDate, banks, config);
+  const res2 = calculateResult(box2, months, openingDate, banks, config);
 
   const formatKRW = (val: number) => new Intl.NumberFormat('ko-KR').format(val);
 
@@ -70,13 +72,13 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const handleAmountInputChange = (boxNum: 1 | 2, value: number) => {
     const otherBox = boxNum === 1 ? box2 : box1;
 
-    if (value > globalConfig.maxDepositPerBank) {
-      alert(`한 은행당 최대 ${globalConfig.maxDepositPerBank / 10000}만원까지 납입 가능합니다. (30만원 초과)`);
+    if (value > config.max_deposit_per_bank) {
+      alert(`한 은행당 최대 ${config.max_deposit_per_bank / 10000}만원까지 납입 가능합니다. (${formatKRW(config.max_deposit_per_bank)}원 초과)`);
       return;
     }
 
-    if (value + otherBox.amount > globalConfig.maxTotalMonthlyDeposit) {
-      alert(`두 은행 합산 최대 ${globalConfig.maxTotalMonthlyDeposit / 10000}만원까지 납입 가능합니다. (55만원 초과)`);
+    if (value + otherBox.amount > config.max_total_monthly_deposit) {
+      alert(`두 은행 합산 최대 ${config.max_total_monthly_deposit / 10000}만원까지 납입 가능합니다. (${formatKRW(config.max_total_monthly_deposit)}원 초과)`);
       return;
     }
 
@@ -104,6 +106,10 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     const version = bank ? getRateVersionForDate(bank, openingDate) : null;
     const filteredPrimeRates = bank && version ? getFilteredPrimeRates(bank, months, version) : [];
+
+    const minRequiredMonths = version && version.primeRates.length > 0
+      ? Math.min(...version.primeRates.map(p => p.min_months || 0))
+      : 0;
 
     return (
       <div className={`w-full rounded-[1.5rem] border-2 ${borderColor} p-5 mb-5 bg-white shadow-sm`}>
@@ -183,13 +189,9 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
              <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
                <p className="text-[11px] font-bold text-slate-400">은행을 먼저 선택해주세요</p>
              </div>
-          ) : bank.id === 'shinhan' && months < 6 ? (
+          ) : (minRequiredMonths > 0 && months < minRequiredMonths) ? (
             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
-              <p className="text-[11px] font-bold text-slate-400">6개월 미만은 해당사항 없음</p>
-            </div>
-          ) : (bank.id === 'kb' && months < 3) ? (
-            <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
-              <p className="text-[11px] font-bold text-slate-400">3개월 미만은 해당사항 없음</p>
+              <p className="text-[11px] font-bold text-slate-400">{minRequiredMonths}개월 미만은 해당사항 없음</p>
             </div>
           ) : (
             filteredPrimeRates.map(prime => {
@@ -324,7 +326,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <Info size={16} />
             </div>
             <p className="text-[12px] font-bold text-blue-800 leading-tight">
-              은행당 최대 30만원, 합계 최대 55만원 가능
+              은행당 최대 {config.max_deposit_per_bank / 10000}만원, 합계 최대 {config.max_total_monthly_deposit / 10000}만원 가능
             </p>
           </div>
 

@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Info, TrendingUp, ShieldCheck, Wallet, PieCh
 import ReactGA from 'react-ga4';
 import * as htmlToImage from 'html-to-image';
 import type { GlobalData } from '../App';
-import { calculateResult } from '../utils/savingsUtils';
+import { calculateResult, getEffectiveConfig } from '../utils/savingsUtils';
 import type { BoxState } from '../utils/savingsUtils';
 
 interface ResultPageProps {
@@ -34,7 +34,9 @@ const ResultPage: React.FC<ResultPageProps> = ({
   recommendationInfo,
   onBack,
 }) => {
-  const { globalConfig, banks, militaryBranches } = data;
+  const { globalConfigs, banks, militaryBranches } = data;
+  const config = getEffectiveConfig(globalConfigs, openingDate.toISOString().split('T')[0]);
+
   const [expandedBankIdx, setExpandedBankIdx] = useState<number | null>(null);
   const [userName, setUserName] = useState('');
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
@@ -43,8 +45,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
   const captureRef = useRef<HTMLDivElement>(null);
   const currentBranch = militaryBranches.find((b) => b.id === selectedBranchId) || militaryBranches[0];
 
-  const res1 = calculateResult(box1, months, openingDate, banks, globalConfig);
-  const res2 = calculateResult(box2, months, openingDate, banks, globalConfig);
+  const res1 = calculateResult(box1, months, openingDate, banks, config);
+  const res2 = calculateResult(box2, months, openingDate, banks, config);
   const totalPrincipal = res1.principal + res2.principal;
   const totalInterest = res1.bankInterest + res2.bankInterest;
   const totalMatching = res1.matchingSupport + res2.matchingSupport;
@@ -310,7 +312,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
                   </div>
                   <div>
                     <p className="text-[13px] font-bold text-slate-900">은행 이자 합계</p>
-                    <p className="text-[11px] text-slate-400 font-medium">비과세 혜택 적용됨</p>
+                    <p className="text-[11px] text-slate-400 font-medium">{config.tax_rate === 0 ? '비과세 혜택 적용됨' : `이자소득세 ${(config.tax_rate * 100).toFixed(1)}% 적용`}</p>
                   </div>
                 </div>
                 <p className="text-base font-black text-orange-500">+{formatKRW(totalInterest)}원</p>
@@ -323,7 +325,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
                   </div>
                   <div>
                     <p className="text-[13px] font-bold text-slate-900">정부 매칭지원금</p>
-                    <p className="text-[11px] text-slate-400 font-medium">원금의 {globalConfig.matchingSupportRate * 100}% 지원</p>
+                    <p className="text-[11px] text-slate-400 font-medium">원금의 {(config.matching_support_rate * 100).toFixed(0)}% 지원</p>
                   </div>
                 </div>
                 <p className="text-base font-black text-green-500">+{formatKRW(totalMatching)}원</p>
@@ -490,7 +492,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-1.5 shrink-0"></div>
                     <p className="text-[13px] text-slate-300 leading-snug">
-                      <strong className="text-white">정부 매칭지원금:</strong> 국가에서 납입 원금의 {globalConfig.matchingSupportRate * 100}%를 추가로 지원해줘요.
+                      <strong className="text-white">정부 매칭지원금:</strong> 국가에서 납입 원금의 {(config.matching_support_rate * 100).toFixed(0)}%를 추가로 지원해줘요.
                     </p>
                   </li>
                 </ul>
