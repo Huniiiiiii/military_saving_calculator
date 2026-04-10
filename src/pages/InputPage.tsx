@@ -28,6 +28,45 @@ const InputPage: React.FC<InputPageProps> = ({
 }) => {
   const { militaryBranches } = data;
 
+  // Filter branches based on the selected enlistment date
+  const getEffectiveBranches = () => {
+    const date = openingDate || new Date().toISOString().split('T')[0];
+    
+    // Group by branch 'id' and find the latest version where effective_day <= selected date
+    const branchIds = Array.from(new Set(militaryBranches.map(b => b.id)));
+    
+    const effective = branchIds.map(id => {
+      const versions = militaryBranches
+        .filter(b => b.id === id && b.effective_day <= date)
+        .sort((a, b) => b.effective_day.localeCompare(a.effective_day));
+      
+      // If no version found for that date, take the earliest one available
+      if (versions.length === 0) {
+        return militaryBranches
+          .filter(b => b.id === id)
+          .sort((a, b) => a.effective_day.localeCompare(b.effective_day))[0];
+      }
+      return versions[0];
+    }).filter(Boolean);
+
+    return effective.sort((a, b) => a.display_order - b.display_order);
+  };
+
+  const effectiveBranches = getEffectiveBranches();
+
+  // Update max_months when branch or date changes
+  React.useEffect(() => {
+    const current = effectiveBranches.find(b => b.id === selectedBranchId);
+    if (current && months > current.max_months) {
+      onMonthsChange(current.max_months);
+    }
+    // If selected branch is no longer in effective list, select first one
+    if (!current && effectiveBranches.length > 0) {
+      onBranchChange(effectiveBranches[0].id);
+      onMonthsChange(effectiveBranches[0].max_months);
+    }
+  }, [openingDate, selectedBranchId]);
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -54,7 +93,7 @@ const InputPage: React.FC<InputPageProps> = ({
           <section className="mb-8">
             <h2 className="text-[13px] font-bold text-slate-500 mb-3 ml-1">군종 선택</h2>
             <div className="grid grid-cols-2 gap-2.5">
-              {militaryBranches.map((branch) => {
+              {effectiveBranches.map((branch) => {
                 const isSelected = selectedBranchId === branch.id;
                 const displayName = branch.name.includes('상근예비역') 
                   ? '육군·해병대\n상근예비역' 
@@ -63,7 +102,10 @@ const InputPage: React.FC<InputPageProps> = ({
                 return (
                   <button
                     key={branch.id}
-                    onClick={() => onBranchChange(branch.id)}
+                    onClick={() => {
+                      onBranchChange(branch.id);
+                      onMonthsChange(branch.max_months);
+                    }}
                     className={`h-16 rounded-2xl border transition-all flex items-center justify-center font-bold text-center px-2 leading-tight whitespace-pre-line
                       ${isSelected 
                         ? 'border-[#2272eb] bg-white text-[#2272eb] shadow-sm' 

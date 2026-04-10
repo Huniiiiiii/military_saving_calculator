@@ -21,9 +21,12 @@ export interface GlobalData {
     taxRate: number;
   };
   militaryBranches: {
+    id_int: number;
     id: string;
     name: string;
     max_months: number;
+    effective_day: string;
+    display_order: number;
   }[];
   banks: Bank[];
 }
@@ -63,7 +66,7 @@ const App: React.FC = () => {
           { data: versions }
         ] = await Promise.all([
           supabase.from('global_config').select('*').single(),
-          supabase.from('military_branches').select('*').order('display_order'),
+          supabase.from('military_branches').select('*').order('display_order').order('effective_day', { ascending: false }),
           supabase.from('banks').select('*').order('display_order'),
           supabase.from('rate_versions').select('*').order('effective_date', { ascending: false })
         ]);

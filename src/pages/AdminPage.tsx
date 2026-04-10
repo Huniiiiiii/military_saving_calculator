@@ -6,7 +6,7 @@ import type { User } from '@supabase/supabase-js';
 import type { GlobalData } from '../App';
 import type { Bank, RateVersion } from '../utils/savingsUtils';
 
-type AdminStep = 'banks' | 'versions' | 'editor';
+type AdminStep = 'banks' | 'versions' | 'editor' | 'branches';
 
 interface AdminPageProps {
   initialData: GlobalData;
@@ -21,6 +21,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
   const [fullData, setFullData] = useState(initialData);
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [selectedBranchIntId, setSelectedBranchIntId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [step, setStep] = useState<AdminStep>('banks');
 
@@ -48,18 +49,36 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
 
   const currentBank = (fullData.banks as Bank[]).find(b => b.id === selectedBankId);
   const selectedVersion = currentBank?.rateVersions.find(v => v.id === selectedVersionId);
+  const selectedBranch = fullData.militaryBranches.find(b => b.id_int === selectedBranchIntId);
 
   // --- Navigation ---
-  const goToVersions = (bankId: string) => { setSelectedBankId(bankId); setSelectedVersionId(null); setStep('versions'); };
+  const goToVersions = (bankId: string) => { 
+    setSelectedBankId(bankId); 
+    setSelectedVersionId(null); 
+    setSelectedBranchIntId(null);
+    setStep('versions'); 
+  };
   const goToEditor = (versionId: string) => { setSelectedVersionId(versionId); setStep('editor'); };
+  const goToBranches = () => { 
+    setStep('branches'); 
+    setSelectedBankId(null); 
+    setSelectedVersionId(null);
+    if (fullData.militaryBranches.length > 0 && !selectedBranchIntId) {
+      setSelectedBranchIntId(fullData.militaryBranches[0].id_int);
+    }
+  };
   const goBackStep = () => {
     if (step === 'editor') setStep('versions');
-    else if (step === 'versions') setStep('banks');
+    else if (step === 'versions' || step === 'branches') setStep('banks');
     else onBack();
   };
 
   // --- DB Persistence ---
   const saveToDatabase = async () => {
+    if (step === 'branches') {
+      await saveMilitaryBranches();
+      return;
+    }
     if (!selectedVersion || !selectedBankId) return;
     setIsSaving(true);
     try {
@@ -90,6 +109,83 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
       alert('저장 실패: ' + msg);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const saveMilitaryBranches = async () => {
+    setIsSaving(true);
+    try {
+      // 1. Upsert Military Branches
+      // Note: id_int is PK, so we use it for upsert. New items won't have it yet if added manually in UI.
+      const { error } = await supabase
+        .from('military_branches')
+        .upsert(fullData.militaryBranches.map(b => ({
+          id_int: b.id_int || undefined, // undefined for new ones (auto-increment)
+          id: b.id,
+          name: b.name,
+          max_months: b.max_months,
+          effective_day: b.effective_day,
+          display_order: b.display_order
+        })));
+
+      if (error) throw error;
+
+      alert('군 정보가 성공적으로 저장되었습니다!');
+      onRefresh();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      alert('저장 실패: ' + msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- Military Branch Handlers ---
+  const handleAddBranch = () => {
+    const newData = { ...fullData };
+    const newBranch = {
+      id_int: 0, // 0 means new record for DB upsert
+      id: 'army',
+      name: '새로운 군 종류',
+      max_months: 18,
+      effective_day: new Date().toISOString().split('T')[0],
+      display_order: fullData.militaryBranches.length + 1
+    };
+    
+    // For local UI state, we need a temp unique id_int
+    const tempBranch = { ...newBranch, id_int: -Date.now() }; 
+    newData.militaryBranches = [tempBranch, ...newData.militaryBranches];
+    setFullData(newData);
+    setSelectedBranchIntId(tempBranch.id_int);
+  };
+
+  const handleDeleteBranch = async (id_int: number) => {
+    if (!window.confirm('이 군 정보를 정말 삭제할까요? DB에서도 즉시 삭제됩니다.')) return;
+    
+    if (id_int > 0) {
+      try {
+        const { error } = await supabase.from('military_branches').delete().eq('id_int', id_int);
+        if (error) throw error;
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+        alert('삭제 실패: ' + msg);
+        return;
+      }
+    }
+
+    const newData = { ...fullData };
+    newData.militaryBranches = newData.militaryBranches.filter(b => b.id_int !== id_int);
+    setFullData(newData);
+    setSelectedBranchIntId(newData.militaryBranches[0]?.id_int || null);
+    alert('삭제되었습니다.');
+  };
+
+  const updateBranchField = (id_int: number, field: string, value: any) => {
+    const newData = { ...fullData };
+    const index = newData.militaryBranches.findIndex(b => b.id_int === id_int);
+    if (index !== -1) {
+      newData.militaryBranches[index] = { ...newData.militaryBranches[index], [field]: value };
+      setFullData(newData);
     }
   };
 
@@ -220,7 +316,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
         </div>
         <div className="flex gap-2">
           <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500"><LogOut size={20} /></button>
-          <button onClick={saveToDatabase} disabled={isSaving || !selectedVersion} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg disabled:opacity-30 transition-all">
+          <button onClick={saveToDatabase} disabled={isSaving || (step !== 'branches' && !selectedVersion)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg disabled:opacity-30 transition-all">
             {isSaving ? '저장 중...' : <><Save size={16} /> <span>DB 저장</span></>}
           </button>
         </div>
@@ -228,6 +324,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         <aside className={`w-full md:w-64 bg-white border-r border-slate-100 p-4 md:p-6 space-y-2 overflow-y-auto ${step !== 'banks' ? 'hidden md:block' : 'block'}`}>
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <LayoutGrid size={14} className="text-blue-500" />
+            <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Global</p>
+          </div>
+          <button onClick={goToBranches} className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl font-black text-sm transition-all mb-4 ${step === 'branches' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
+            군 종류 관리 <ChevronRight size={16} opacity={0.3} />
+          </button>
+
           <div className="flex items-center gap-2 mb-4 px-2">
             <LayoutGrid size={14} className="text-blue-500" />
             <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Banks</p>
@@ -239,31 +343,152 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
           ))}
         </aside>
 
-        <aside className={`w-full md:w-80 bg-[#FBFCFF] border-r border-slate-100 p-4 md:p-6 space-y-4 overflow-y-auto ${step !== 'versions' ? 'hidden md:block' : 'block'}`}>
+        <aside className={`w-full md:w-80 bg-[#FBFCFF] border-r border-slate-100 p-4 md:p-6 space-y-4 overflow-y-auto ${step !== 'versions' && step !== 'branches' ? 'hidden md:block' : 'block'}`}>
           <div className="flex items-center justify-between mb-4 px-1">
-            <div className="flex items-center gap-2"><History size={14} className="text-blue-500" /><p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Versions</p></div>
-            <button onClick={handleAddVersion} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"><Plus size={18} /></button>
+            <div className="flex items-center gap-2">
+              <History size={14} className="text-blue-500" />
+              <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">
+                {step === 'branches' ? 'Branch Records' : 'Versions'}
+              </p>
+            </div>
+            <button 
+              onClick={step === 'branches' ? handleAddBranch : handleAddVersion} 
+              className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+            >
+              <Plus size={18} />
+            </button>
           </div>
           <div className="space-y-3">
-            {currentBank?.rateVersions.map((v) => (
-              <div key={v.id} onClick={() => goToEditor(v.id)} className={`group relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${selectedVersionId === v.id ? 'bg-white border-blue-500 shadow-xl ring-4 ring-blue-50' : 'bg-white border-transparent shadow-sm hover:border-slate-200'}`}>
-                <div className="flex items-center gap-3 mb-1">
-                  <Calendar size={14} className={selectedVersionId === v.id ? 'text-blue-500' : 'text-slate-400'} />
-                  <span className={`text-[15px] font-black ${selectedVersionId === v.id ? 'text-slate-900' : 'text-slate-600'}`}>{v.effectiveDate}</span>
-                </div>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleDeleteVersion(v.id); }}
-                  className="absolute top-4 right-4 p-3 text-slate-300 hover:text-red-500 transition-all active:scale-90"
+            {step === 'branches' ? (
+              fullData.militaryBranches.map((branch) => (
+                <div 
+                  key={branch.id_int} 
+                  onClick={() => setSelectedBranchIntId(branch.id_int)} 
+                  className={`group relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${selectedBranchIntId === branch.id_int ? 'bg-white border-blue-500 shadow-xl ring-4 ring-blue-50' : 'bg-white border-transparent shadow-sm hover:border-slate-200'}`}
                 >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={12} className={selectedBranchIntId === branch.id_int ? 'text-blue-500' : 'text-slate-400'} />
+                      <span className={`text-[11px] font-bold ${selectedBranchIntId === branch.id_int ? 'text-blue-600' : 'text-slate-400'}`}>{branch.effective_day}</span>
+                    </div>
+                    <span className={`text-[15px] font-black ${selectedBranchIntId === branch.id_int ? 'text-slate-900' : 'text-slate-600'}`}>{branch.name}</span>
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDeleteBranch(branch.id_int); }}
+                    className="absolute top-4 right-2 p-3 text-slate-300 hover:text-red-500 transition-all active:scale-90"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))
+            ) : (
+              currentBank?.rateVersions.map((v) => (
+                <div key={v.id} onClick={() => goToEditor(v.id)} className={`group relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${selectedVersionId === v.id ? 'bg-white border-blue-500 shadow-xl ring-4 ring-blue-50' : 'bg-white border-transparent shadow-sm hover:border-slate-200'}`}>
+                  <div className="flex items-center gap-3 mb-1">
+                    <Calendar size={14} className={selectedVersionId === v.id ? 'text-blue-500' : 'text-slate-400'} />
+                    <span className={`text-[15px] font-black ${selectedVersionId === v.id ? 'text-slate-900' : 'text-slate-600'}`}>{v.effectiveDate}</span>
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDeleteVersion(v.id); }}
+                    className="absolute top-4 right-4 p-3 text-slate-300 hover:text-red-500 transition-all active:scale-90"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </aside>
 
-        <section className={`flex-1 bg-white p-4 md:p-10 overflow-y-auto ${step !== 'editor' ? 'hidden md:block' : 'block'}`}>
-          {selectedVersion ? (
+        <section className={`flex-1 bg-white p-4 md:p-10 overflow-y-auto ${step !== 'editor' && step !== 'branches' ? 'hidden md:block' : 'block'}`}>
+          {step === 'branches' ? (
+            selectedBranch ? (
+              <div className="max-w-3xl mx-auto space-y-10 pb-20">
+                <header>
+                  <div className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest mb-1">
+                    <LayoutGrid size={12} /> Editing Branch Rule
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{selectedBranch.name}</h2>
+                </header>
+
+                <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 relative group">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1">ID (식별자)</label>
+                      <input 
+                        type="text" 
+                        value={selectedBranch.id} 
+                        onChange={(e) => updateBranchField(selectedBranch.id_int, 'id', e.target.value)} 
+                        className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm"
+                        placeholder="예: army"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1">이름 (표시용)</label>
+                      <input 
+                        type="text" 
+                        value={selectedBranch.name} 
+                        onChange={(e) => updateBranchField(selectedBranch.id_int, 'name', e.target.value)} 
+                        className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm"
+                        placeholder="예: 육군·해병대"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1">최대 복무 기간 (개월)</label>
+                      <input 
+                        type="number" 
+                        value={selectedBranch.max_months} 
+                        onChange={(e) => updateBranchField(selectedBranch.id_int, 'max_months', parseInt(e.target.value))} 
+                        className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1">적용 시작일 (Effective Day)</label>
+                      <input 
+                        type="date" 
+                        value={selectedBranch.effective_day} 
+                        onChange={(e) => updateBranchField(selectedBranch.id_int, 'effective_day', e.target.value)} 
+                        className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1">정렬 순서</label>
+                      <input 
+                        type="number" 
+                        value={selectedBranch.display_order} 
+                        onChange={(e) => updateBranchField(selectedBranch.id_int, 'display_order', parseInt(e.target.value))} 
+                        className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1 flex items-center gap-1">
+                        내부 번호 <span className="text-[8px] opacity-50">(Read Only)</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        value={selectedBranch.id_int > 0 ? selectedBranch.id_int : 'New'} 
+                        readOnly 
+                        className="w-full h-12 bg-slate-100 rounded-xl px-4 font-bold text-slate-400 outline-none shadow-sm cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-8 pt-8 border-t border-slate-200 flex justify-end">
+                    <button 
+                      onClick={() => handleDeleteBranch(selectedBranch.id_int)}
+                      className="flex items-center gap-2 px-6 py-3 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-all"
+                    >
+                      <Trash2 size={18} /> <span>이 규정 삭제</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[60vh] flex flex-col items-center justify-center text-center px-6">
+                <History size={48} className="text-slate-100 mb-4" />
+                <h3 className="text-lg font-black text-slate-300">왼쪽 목록에서 군 정보 규정을<br/>선택하거나 추가해 주세요.</h3>
+              </div>
+            )
+          ) : selectedVersion ? (
             <div className="max-w-3xl mx-auto space-y-10 pb-20">
               <header>
                 <div className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest mb-1"><Edit3 size={12} /> Editing Mode</div>

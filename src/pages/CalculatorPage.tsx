@@ -105,6 +105,10 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const version = bank ? getRateVersionForDate(bank, openingDate) : null;
     const filteredPrimeRates = bank && version ? getFilteredPrimeRates(bank, months, version) : [];
 
+    const minRequiredMonths = version && version.primeRates.length > 0
+      ? Math.min(...version.primeRates.map(p => p.min_months || 0))
+      : 0;
+
     return (
       <div className={`w-full rounded-[1.5rem] border-2 ${borderColor} p-5 mb-5 bg-white shadow-sm`}>
         <div className="flex justify-between items-start mb-3">
@@ -183,13 +187,9 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
              <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
                <p className="text-[11px] font-bold text-slate-400">은행을 먼저 선택해주세요</p>
              </div>
-          ) : bank.id === 'shinhan' && months < 6 ? (
+          ) : (minRequiredMonths > 0 && months < minRequiredMonths) ? (
             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
-              <p className="text-[11px] font-bold text-slate-400">6개월 미만은 해당사항 없음</p>
-            </div>
-          ) : (bank.id === 'kb' && months < 3) ? (
-            <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
-              <p className="text-[11px] font-bold text-slate-400">3개월 미만은 해당사항 없음</p>
+              <p className="text-[11px] font-bold text-slate-400">{minRequiredMonths}개월 미만은 해당사항 없음</p>
             </div>
           ) : (
             filteredPrimeRates.map(prime => {
