@@ -1,25 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import ReactGA from 'react-ga4';
-import { Sparkles } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import Onboarding from './pages/Onboarding';
-import AdminPage from './pages/AdminPage';
 import InputPage from './pages/InputPage';
 import CalculatorPage from './pages/CalculatorPage';
 import ResultPage from './pages/ResultPage';
+import AdminPage from './pages/AdminPage';
 import RecommendationPage from './pages/RecommendationPage';
 import type { RecommendationResult } from './pages/RecommendationPage';
 import { supabase } from './lib/supabase';
-import type { Bank } from './utils/savingsUtils';
+import { getEffectiveConfig } from './utils/savingsUtils';
+import type { Bank, GlobalConfig } from './utils/savingsUtils';
 
 export interface GlobalData {
   version: string;
-  globalConfig: {
-    maxTotalMonthlyDeposit: number;
-    maxDepositPerBank: number;
-    matchingSupportRate: number;
-    taxRate: number;
-  };
+  globalConfigs: GlobalConfig[];
   militaryBranches: {
     id_int: number;
     id: string;
@@ -60,18 +55,18 @@ const App: React.FC = () => {
     const fetchData = async () => {
       try {
         const [
-          { data: config },
+          { data: configs },
           { data: branches },
           { data: banks },
           { data: versions }
         ] = await Promise.all([
-          supabase.from('global_config').select('*').single(),
+          supabase.from('global_config').select('*').order('effective_day_config', { ascending: false }),
           supabase.from('military_branches').select('*').order('display_order').order('effective_day', { ascending: false }),
           supabase.from('banks').select('*').order('display_order'),
           supabase.from('rate_versions').select('*').order('effective_date', { ascending: false })
         ]);
 
-        if (!config || !branches || !banks) throw new Error('Failed to fetch required data');
+        if (!configs || !branches || !banks) throw new Error('Failed to fetch required data');
 
         // Transform into nested data structure expected by the app
         const processedBanks: Bank[] = banks.map(bank => ({
@@ -88,13 +83,8 @@ const App: React.FC = () => {
         }));
 
         const finalData: GlobalData = {
-          version: config.version,
-          globalConfig: {
-            maxTotalMonthlyDeposit: config.max_total_monthly_deposit,
-            maxDepositPerBank: config.max_deposit_per_bank,
-            matchingSupportRate: config.matching_support_rate,
-            taxRate: config.tax_rate
-          },
+          version: configs[0].version,
+          globalConfigs: configs,
           militaryBranches: branches,
           banks: processedBanks
         };
@@ -112,134 +102,125 @@ const App: React.FC = () => {
     fetchData();
   }, []);
 
-  // Track page views when step changes
+  // Set initial amounts when data or openingDate is ready/changed
   useEffect(() => {
-    if (import.meta.env.PROD) {
-      ReactGA.send({ hitType: 'pageview', page: `/${step}`, title: step });
+    if (globalData) {
+      const config = getEffectiveConfig(globalData.globalConfigs, openingDate);
+      setBox1(prev => ({ ...prev, amount: config.max_deposit_per_bank }));
+      setBox2(prev => ({ ...prev, amount: config.max_total_monthly_deposit - config.max_deposit_per_bank }));
     }
-    window.goAdmin = () => setStep('admin');
-  }, [step]);
+  }, [globalData, openingDate]);
 
-  // --- Handlers ---
-  const handleBranchChange = (id: string) => {
-    if (!globalData) return;
-    const branch = globalData.militaryBranches.find((b) => b.id === id);
-    if (branch) {
-      setSelectedBranchId(id);
-      setMonths(branch.max_months);
-    }
+  const handleRefreshData = async () => {
+    // Simple way to refresh: reload page or re-run fetchData logic
+    window.location.reload();
   };
 
-  const handleMonthsChange = (val: number) => {
-    if (!globalData) return;
-    const branch = globalData.militaryBranches.find((b) => b.id === selectedBranchId);
-    const maxMonths = branch ? branch.max_months : 24;
-    const clampedMonths = Math.max(0, Math.min(val, maxMonths));
-    setMonths(clampedMonths);
-  };
-
-  const handleRecommendationComplete = (result: RecommendationResult) => {
-    setBox1(result.box1);
-    setBox2(result.box2);
-    setRecommendationInfo({
-      hanaSalary: result.hanaSalary,
-      housingBankName: result.housingBankName,
-      isSociallyVulnerable: result.isSociallyVulnerable
-    });
+  const handleRecommendationComplete = (res: RecommendationResult) => {
+    setBox1(res.box1);
+    setBox2(res.box2);
     setIsRecommended(true);
-    setStep('result');
+    setRecommendationInfo({
+      hanaSalary: res.hanaSalary,
+      housingBankName: res.housingBankName,
+      isSociallyVulnerable: res.isSociallyVulnerable
+    });
+    setStep('calculator');
   };
+
+  if (!isDataLoaded || !globalData) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-50 border-t-blue-500 rounded-full animate-spin"></div>
+          <p className="text-slate-400 font-bold text-sm">최신 금리 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <AnimatePresence mode="wait">
-      {step === 'onboarding' ? (
-        <Onboarding 
-          onStart={() => setStep('input')} 
-          onAdmin={() => setStep('admin')}
-          key="onboarding" 
-        />
-      ) : !isDataLoaded || !globalData ? (
-        <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center" key="global-loading">
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-            <div className="relative mb-6">
-              <div className="w-16 h-16 border-4 border-blue-50 border-t-blue-500 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center"><Sparkles className="text-blue-500" size={24} /></div>
-            </div>
-            <h2 className="text-lg font-black text-slate-900">최신 금리 정보를 가져오고 있어요</h2>
-          </motion.div>
-        </div>
-      ) : step === 'admin' ? (
-        <AdminPage key="admin" initialData={globalData} onBack={() => setStep('input')} onRefresh={() => window.location.reload()} />
-      ) : step === 'input' ? (
-        <InputPage
-          key="input"
-          data={globalData}
-          selectedBranchId={selectedBranchId}
-          onBranchChange={handleBranchChange}
-          months={months}
-          onMonthsChange={handleMonthsChange}
-          openingDate={openingDate}
-          onOpeningDateChange={setOpeningDate}
-          onNext={() => setStep('calculator')}
-          onBack={() => setStep('onboarding')}
-        />
-      ) : step === 'recommendation' ? (
-        <RecommendationPage
-          key="recommendation"
-          data={globalData}
-          months={months}
-          openingDate={new Date(openingDate)}
-          onBack={() => setStep('input')}
-          onComplete={handleRecommendationComplete}
-        />
-      ) : step === 'calculator' ? (
-        <CalculatorPage
-          key="calculator"
-          data={globalData}
-          selectedBranchId={selectedBranchId}
-          months={months}
-          openingDate={new Date(openingDate)}
-          box1={box1}
-          box2={box2}
-          setBox1={setBox1}
-          setBox2={setBox2}
-          onBack={() => setStep('input')}
-          onRecommend={() => setStep('recommendation')}
-          onReset={() => {
-            setBox1({ bankId: '', amount: 300000, selectedPrimeIds: [] });
-            setBox2({ bankId: '', amount: 250000, selectedPrimeIds: [] });
-            setIsRecommended(false);
-          }}
-          onShowDetails={() => {
-            setIsRecommended(false);
-            setStep('result');
-          }}
-        />
-      ) : (
-        <ResultPage
-          key="result"
-          data={globalData}
-          selectedBranchId={selectedBranchId}
-          months={months}
-          openingDate={new Date(openingDate)}
-          box1={box1}
-          box2={box2}
-          isRecommended={isRecommended}
-          recommendationInfo={recommendationInfo}
-          onBack={() => {
-            if (isRecommended) setStep('input');
-            else setStep('calculator');
-          }}
-        />
-      )}
-    </AnimatePresence>
+    <div className="font-sans antialiased text-slate-900 overflow-x-hidden">
+      <AnimatePresence mode="wait">
+        {step === 'onboarding' && (
+          <Onboarding key="onboarding" onStart={() => setStep('input')} onAdmin={() => setStep('admin')} />
+        )}
+        
+        {step === 'input' && (
+          <InputPage 
+            key="input"
+            data={globalData}
+            selectedBranchId={selectedBranchId}
+            onBranchChange={setSelectedBranchId}
+            months={months}
+            onMonthsChange={setMonths}
+            openingDate={openingDate}
+            onOpeningDateChange={setOpeningDate}
+            onNext={() => setStep('calculator')}
+            onBack={() => setStep('onboarding')}
+          />
+        )}
+
+        {step === 'calculator' && (
+          <CalculatorPage 
+            key="calculator"
+            data={globalData}
+            selectedBranchId={selectedBranchId}
+            months={months}
+            openingDate={new Date(openingDate)}
+            box1={box1}
+            box2={box2}
+            setBox1={setBox1}
+            setBox2={setBox2}
+            onBack={() => setStep('input')}
+            onRecommend={() => setStep('recommendation')}
+            onReset={() => {
+              const config = getEffectiveConfig(globalData.globalConfigs, openingDate);
+              setBox1({ bankId: '', amount: config.max_deposit_per_bank, selectedPrimeIds: [] });
+              setBox2({ bankId: '', amount: config.max_total_monthly_deposit - config.max_deposit_per_bank, selectedPrimeIds: [] });
+              setIsRecommended(false);
+            }}
+            onShowDetails={() => setStep('result')}
+          />
+        )}
+
+        {step === 'recommendation' && (
+          <RecommendationPage 
+            key="recommendation"
+            data={globalData}
+            months={months}
+            openingDate={new Date(openingDate)}
+            onBack={() => setStep('calculator')}
+            onComplete={handleRecommendationComplete}
+          />
+        )}
+
+        {step === 'result' && (
+          <ResultPage 
+            key="result"
+            data={globalData}
+            selectedBranchId={selectedBranchId}
+            months={months}
+            openingDate={new Date(openingDate)}
+            box1={box1}
+            box2={box2}
+            isRecommended={isRecommended}
+            recommendationInfo={recommendationInfo}
+            onBack={() => setStep('calculator')}
+          />
+        )}
+
+        {step === 'admin' && (
+          <AdminPage 
+            key="admin"
+            initialData={globalData}
+            onBack={() => setStep('onboarding')}
+            onRefresh={handleRefreshData}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
-
-declare global {
-  interface Window {
-    goAdmin: () => void;
-  }
-}
 
 export default App;
