@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, Plus, Trash2, Save, Lock, ChevronRight, Calendar, LayoutGrid, History, Edit3, LogOut, ExternalLink, Settings2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import type { GlobalData, GlobalConfig } from '../App';
-import type { Bank, RateVersion } from '../utils/savingsUtils';
+import type { GlobalData } from '../App';
+import type { GlobalConfig, Bank, RateVersion } from '../utils/savingsUtils';
 
 type AdminStep = 'banks' | 'versions' | 'editor' | 'branches' | 'configs';
 
