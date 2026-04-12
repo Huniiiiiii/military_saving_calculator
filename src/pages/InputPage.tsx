@@ -118,8 +118,8 @@ const InputPage: React.FC<InputPageProps> = ({
     >
       <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
         
-        {/* Navigation Bar */}
-        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF] z-30 border-b border-slate-200 shadow-sm">
+        {/* Navigation Bar - Fixed */}
+        <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
           <button 
             onClick={onBack} 
             className="p-2 text-slate-900"
@@ -130,7 +130,7 @@ const InputPage: React.FC<InputPageProps> = ({
           <div className="w-11" />
         </header>
 
-        <div className="flex-1 w-full px-5 py-6 flex flex-col overflow-y-auto">
+        <div className="flex-1 w-full px-5 pt-20 pb-40 flex flex-col overflow-y-auto">
           {/* 1. 군종 선택 */}
           <section className="mb-8">
             <h2 className="text-[13px] font-bold text-slate-500 mb-3 ml-1">군종 선택</h2>
@@ -273,8 +273,8 @@ const InputPage: React.FC<InputPageProps> = ({
           </section>
         </div>
 
-        {/* Bottom CTA Button */}
-        <div className="w-full p-5 pb-8 space-y-3 bg-[#F8FAFF]">
+        {/* Bottom CTA Button - Fixed */}
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] p-5 pb-8 space-y-3 bg-[#F8FAFF]/95 backdrop-blur-sm z-30 border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
           <button
             onClick={onNext}
             disabled={months <= 0 || !isEligible}

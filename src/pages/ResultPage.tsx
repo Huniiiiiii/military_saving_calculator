@@ -101,7 +101,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
       const userAgent = navigator.userAgent.toLowerCase();
       const isIOS = /iphone|ipad|ipod/i.test(userAgent);
       
-      // 1. iOS: Use system share if available
       if (isIOS && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
         const file = new File([blob], fileName, { type: 'image/png' });
         await navigator.share({
@@ -110,7 +109,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
           text: '나의 예상 만기 수령액을 확인해보세요!'
         });
       } 
-      // 2. Android & Windows/PC: Direct download
       else {
         const dataUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -179,8 +177,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
         className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]"
       >
         
-        {/* Header */}
-        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF] z-30 border-b border-slate-200 shadow-sm">
+        {/* Header - Fixed */}
+        <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
           <button onClick={onBack} className="p-2 text-slate-900">
             <ChevronLeft size={28} strokeWidth={2.5} />
           </button>
@@ -190,7 +188,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
           </button>
         </header>
 
-        <div className="flex-1 px-4 pt-4 pb-20">
+        <div className="flex-1 px-4 pt-20 pb-60 overflow-y-auto">
           <div className="flex justify-between items-start mb-4 ml-1">
             <div className="flex flex-col">
               <p className="text-[12px] font-bold text-slate-500">
@@ -516,7 +514,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
         </div>
 
         {!isCapturing && (
-          <div className="sticky bottom-0 left-0 w-full p-4 pb-6 bg-[#F8FAFF] z-30 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex flex-col items-center gap-3">
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] p-4 pb-6 bg-[#F8FAFF]/95 backdrop-blur-sm z-30 border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] flex flex-col items-center gap-3">
             <button 
               onClick={() => {
                 if (import.meta.env.PROD) {

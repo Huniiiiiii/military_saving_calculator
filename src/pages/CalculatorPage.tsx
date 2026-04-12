@@ -291,8 +291,8 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     >
       <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
         
-        {/* Header */}
-        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF] z-30 border-b border-slate-200 shadow-sm">
+        {/* Header - Fixed */}
+        <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
           <button onClick={onBack} className="p-2 text-slate-900">
             <ChevronLeft size={28} strokeWidth={2.5} />
           </button>
@@ -303,7 +303,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
         </header>
 
         {/* Content (Scrollable) */}
-        <div className="flex-1 px-4 py-4 pb-80">
+        <div className="flex-1 px-4 pt-20 pb-40 overflow-y-auto">
           <div className="flex flex-col mb-2 ml-1">
             <p className="text-[12px] font-bold text-slate-500">
               입대일: {enlistmentDate} · {isJoined ? `적금 가입: ${joinDate}` : '적금 가입: 미가입'}

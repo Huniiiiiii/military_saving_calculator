@@ -356,12 +356,13 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="min-h-screen bg-[#F8FAFF] flex flex-col items-center">
       <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
-        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF] z-30 border-b border-slate-200 shadow-sm">
+        {/* Header - Fixed */}
+        <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
           <button onClick={handleBack} className="p-2 text-slate-900"><ChevronLeft size={28} strokeWidth={2.5} /></button>
           <div className="flex gap-1.5">{[1, 2, 3, 4].map(i => <div key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${step === i ? 'w-6 bg-blue-500' : 'bg-slate-200'}`} />)}</div>
           <div className="w-11" />
         </header>
-        <div className="flex-1 px-6 py-6 flex flex-col">
+        <div className="flex-1 px-6 pt-20 pb-48 flex flex-col overflow-y-auto">
           <div className="mb-10">
             <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6">{currentStepData.icon}</div>
             <h2 className="text-2xl font-black text-slate-900 leading-tight whitespace-pre-line mb-3">{currentStepData.title}</h2>
@@ -369,12 +370,12 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           </div>
           <AnimatePresence mode="wait"><motion.div key={step} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="flex-1">{currentStepData.content}</motion.div></AnimatePresence>
           <div className="h-32" /> {/* Spacer for fixed bottom area */}
-          <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#F8FAFF]/80 backdrop-blur-md z-30 flex flex-col items-center">
-            <div className="w-full max-w-[480px]">
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] p-6 pb-8 bg-[#F8FAFF]/95 backdrop-blur-sm z-30 border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] flex flex-col items-center">
+            <div className="w-full">
               <button
                 onClick={handleNext}
                 disabled={(step === 1 && hasHousing === null) || (step === 2 && housingBankId === '') || (step === 4 && hanaSalary === null)}
-                className="w-full h-16 bg-[#1A5CFF] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-30"
+                className="w-full h-16 bg-[#1A5CFF] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-50"
               >
                 {step === 4 ? "분석 시작하기" : "다음으로"}
               </button>
