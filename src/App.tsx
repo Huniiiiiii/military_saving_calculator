@@ -125,7 +125,7 @@ const App: React.FC = () => {
       housingBankName: res.housingBankName,
       isSociallyVulnerable: res.isSociallyVulnerable
     });
-    setStep('calculator');
+    setStep('result');
   };
 
   if (!isDataLoaded || !globalData) {

@@ -159,8 +159,8 @@ export const calculateResult = (
   const netBankInterest = Math.floor(bankInterest - tax);
 
   const principal = boxState.amount * months;
-  // Matching support is typically based on principal + pre-tax interest
-  const matchingSupport = Math.floor((principal + bankInterest) * (config?.matching_support_rate || 1.0));
+  // Matching support is based on principal only
+  const matchingSupport = Math.floor(principal * (config?.matching_support_rate || 1.0));
   const totalMaturity = principal + netBankInterest + matchingSupport;
 
   return { 
