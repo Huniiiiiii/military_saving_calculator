@@ -24,6 +24,7 @@ interface ResultPageProps {
     isSociallyVulnerable: boolean;
   };
   onBack: () => void;
+  onInquiry: () => void;
 }
 
 const ResultPage: React.FC<ResultPageProps> = ({
@@ -39,6 +40,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
   isRecommended,
   recommendationInfo,
   onBack,
+  onInquiry,
 }) => {
   const { globalConfigs, banks, militaryBranches } = data;
   const config = getEffectiveConfig(globalConfigs, targetDate.toISOString().split('T')[0]);
@@ -531,10 +533,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
               다시 계산하기
             </button>
 
-            <a 
-              href="https://forms.gle/yN4kUQzbCYbFz59J7"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button 
               onClick={() => {
                 if (import.meta.env.PROD) {
                   ReactGA.event({
@@ -543,12 +542,13 @@ const ResultPage: React.FC<ResultPageProps> = ({
                     label: '문의하기 및 제안'
                   });
                 }
+                onInquiry();
               }}
               className="flex items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
             >
               <span className="text-[11px] font-bold border-b border-slate-300">문의하기 및 제안</span>
               <ChevronRight size={12} strokeWidth={3} />
-            </a>
+            </button>
           </div>
         )}
       </div>

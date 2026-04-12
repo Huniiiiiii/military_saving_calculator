@@ -7,6 +7,7 @@ import CalculatorPage from './pages/CalculatorPage';
 import ResultPage from './pages/ResultPage';
 import AdminPage from './pages/AdminPage';
 import RecommendationPage from './pages/RecommendationPage';
+import InquiryPage from './pages/InquiryPage';
 import type { RecommendationResult } from './pages/RecommendationPage';
 import { supabase } from './lib/supabase';
 import { getEffectiveConfig } from './utils/savingsUtils';
@@ -37,7 +38,7 @@ const App: React.FC = () => {
   const [globalData, setGlobalData] = useState<GlobalData | null>(null);
 
   // --- App Flow States ---
-  const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result' | 'recommendation' | 'admin'>('onboarding');
+  const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result' | 'recommendation' | 'admin' | 'inquiry'>('onboarding');
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [months, setMonths] = useState(18);
   const [enlistmentDate, setEnlistmentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -228,6 +229,14 @@ const App: React.FC = () => {
                 isRecommended={isRecommended}
                 recommendationInfo={recommendationInfo}
                 onBack={() => setStep('calculator')}
+                onInquiry={() => setStep('inquiry')}
+              />
+            )}
+
+            {step === 'inquiry' && (
+              <InquiryPage 
+                key="inquiry"
+                onBack={() => setStep('result')}
               />
             )}
 
