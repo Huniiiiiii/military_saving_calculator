@@ -303,7 +303,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
         </header>
 
         {/* Content (Scrollable) */}
-        <div className="flex-1 px-4 pt-20 pb-40 overflow-y-auto">
+        <div className="flex-1 px-4 pt-20 pb-80 overflow-y-auto">
           <div className="flex flex-col mb-2 ml-1">
             <p className="text-[12px] font-bold text-slate-500">
               입대일: {enlistmentDate} · {isJoined ? `적금 가입: ${joinDate}` : '적금 가입: 미가입'}
