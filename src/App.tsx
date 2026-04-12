@@ -40,7 +40,10 @@ const App: React.FC = () => {
   const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result' | 'recommendation' | 'admin'>('onboarding');
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [months, setMonths] = useState(18);
-  const [openingDate, setOpeningDate] = useState(new Date().toISOString().split('T')[0]);
+  const [enlistmentDate, setEnlistmentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isJoined, setIsJoined] = useState(false);
+  const [joinDate, setJoinDate] = useState(new Date().toISOString().split('T')[0]);
+
   const [box1, setBox1] = useState({ bankId: '', amount: 300000, selectedPrimeIds: [] as string[] });
   const [box2, setBox2] = useState({ bankId: '', amount: 250000, selectedPrimeIds: [] as string[] });
   const [isRecommended, setIsRecommended] = useState(false);
@@ -49,6 +52,12 @@ const App: React.FC = () => {
     housingBankName: '',
     isSociallyVulnerable: false
   });
+
+  // Derived Values
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isEnlisted = enlistmentDate < todayStr;
+  
+  const targetDate = (!isEnlisted || !isJoined) ? todayStr : joinDate;
 
   // --- Data Fetching ---
   useEffect(() => {
@@ -68,7 +77,6 @@ const App: React.FC = () => {
 
         if (!configs || !branches || !banks) throw new Error('Failed to fetch required data');
 
-        // Transform into nested data structure expected by the app
         const processedBanks: Bank[] = banks.map(bank => ({
           ...bank,
           rateVersions: (versions || [])
@@ -92,6 +100,12 @@ const App: React.FC = () => {
         setGlobalData(finalData);
         setSelectedBranchId(branches[0].id);
         setMonths(branches[0].max_months);
+
+        // Initial amount setting based on today/targetDate
+        const config = getEffectiveConfig(configs, todayStr);
+        setBox1(prev => ({ ...prev, amount: config.max_deposit_per_bank }));
+        setBox2(prev => ({ ...prev, amount: config.max_total_monthly_deposit - config.max_deposit_per_bank }));
+
         setIsDataLoaded(true);
       } catch (error) {
         console.error('Error loading data:', error);
@@ -100,19 +114,18 @@ const App: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [todayStr]);
 
-  // Set initial amounts when data or openingDate is ready/changed
+  // Sync amounts when targetDate changes (only if already loaded)
   useEffect(() => {
-    if (globalData) {
-      const config = getEffectiveConfig(globalData.globalConfigs, openingDate);
+    if (isDataLoaded && globalData) {
+      const config = getEffectiveConfig(globalData.globalConfigs, targetDate);
       setBox1(prev => ({ ...prev, amount: config.max_deposit_per_bank }));
       setBox2(prev => ({ ...prev, amount: config.max_total_monthly_deposit - config.max_deposit_per_bank }));
     }
-  }, [globalData, openingDate]);
+  }, [targetDate, isDataLoaded, globalData]);
 
   const handleRefreshData = async () => {
-    // Simple way to refresh: reload page or re-run fetchData logic
     window.location.reload();
   };
 
@@ -152,8 +165,12 @@ const App: React.FC = () => {
                 onBranchChange={setSelectedBranchId}
                 months={months}
                 onMonthsChange={setMonths}
-                openingDate={openingDate}
-                onOpeningDateChange={setOpeningDate}
+                enlistmentDate={enlistmentDate}
+                onEnlistmentDateChange={setEnlistmentDate}
+                isJoined={isJoined}
+                onIsJoinedChange={setIsJoined}
+                joinDate={joinDate}
+                onJoinDateChange={setJoinDate}
                 onNext={() => setStep('calculator')}
                 onBack={() => setStep('onboarding')}
               />
@@ -165,7 +182,10 @@ const App: React.FC = () => {
                 data={globalData}
                 selectedBranchId={selectedBranchId}
                 months={months}
-                openingDate={new Date(openingDate)}
+                enlistmentDate={enlistmentDate}
+                isJoined={isJoined}
+                joinDate={joinDate}
+                targetDate={new Date(targetDate)}
                 box1={box1}
                 box2={box2}
                 setBox1={setBox1}
@@ -173,7 +193,7 @@ const App: React.FC = () => {
                 onBack={() => setStep('input')}
                 onRecommend={() => setStep('recommendation')}
                 onReset={() => {
-                  const config = getEffectiveConfig(globalData.globalConfigs, openingDate);
+                  const config = getEffectiveConfig(globalData.globalConfigs, targetDate);
                   setBox1({ bankId: '', amount: config.max_deposit_per_bank, selectedPrimeIds: [] });
                   setBox2({ bankId: '', amount: config.max_total_monthly_deposit - config.max_deposit_per_bank, selectedPrimeIds: [] });
                   setIsRecommended(false);
@@ -187,7 +207,7 @@ const App: React.FC = () => {
                 key="recommendation"
                 data={globalData}
                 months={months}
-                openingDate={new Date(openingDate)}
+                openingDate={new Date(targetDate)}
                 onBack={() => setStep('calculator')}
                 onComplete={handleRecommendationComplete}
               />
@@ -199,7 +219,10 @@ const App: React.FC = () => {
                 data={globalData}
                 selectedBranchId={selectedBranchId}
                 months={months}
-                openingDate={new Date(openingDate)}
+                enlistmentDate={enlistmentDate}
+                isJoined={isJoined}
+                joinDate={joinDate}
+                targetDate={new Date(targetDate)}
                 box1={box1}
                 box2={box2}
                 isRecommended={isRecommended}
