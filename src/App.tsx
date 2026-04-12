@@ -128,17 +128,6 @@ const App: React.FC = () => {
     setStep('result');
   };
 
-  if (!isDataLoaded || !globalData) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-50 border-t-blue-500 rounded-full animate-spin"></div>
-          <p className="text-slate-400 font-bold text-sm">최신 금리 정보를 불러오는 중...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="font-sans antialiased text-slate-900 overflow-x-hidden">
       <AnimatePresence mode="wait">
@@ -147,18 +136,27 @@ const App: React.FC = () => {
         )}
         
         {step === 'input' && (
-          <InputPage 
-            key="input"
-            data={globalData}
-            selectedBranchId={selectedBranchId}
-            onBranchChange={setSelectedBranchId}
-            months={months}
-            onMonthsChange={setMonths}
-            openingDate={openingDate}
-            onOpeningDateChange={setOpeningDate}
-            onNext={() => setStep('calculator')}
-            onBack={() => setStep('onboarding')}
-          />
+          !isDataLoaded || !globalData ? (
+            <div key="loading" className="min-h-screen bg-white flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-blue-50 border-t-blue-500 rounded-full animate-spin"></div>
+                <p className="text-slate-400 font-bold text-sm">최신 금리 정보를 불러오는 중...</p>
+              </div>
+            </div>
+          ) : (
+            <InputPage 
+              key="input"
+              data={globalData}
+              selectedBranchId={selectedBranchId}
+              onBranchChange={setSelectedBranchId}
+              months={months}
+              onMonthsChange={setMonths}
+              openingDate={openingDate}
+              onOpeningDateChange={setOpeningDate}
+              onNext={() => setStep('calculator')}
+              onBack={() => setStep('onboarding')}
+            />
+          )
         )}
 
         {step === 'calculator' && (

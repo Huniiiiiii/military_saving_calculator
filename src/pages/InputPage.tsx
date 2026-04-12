@@ -29,7 +29,7 @@ const InputPage: React.FC<InputPageProps> = ({
   const { militaryBranches } = data;
 
   // Filter branches based on the selected enlistment date
-  const getEffectiveBranches = () => {
+  const effectiveBranches = React.useMemo(() => {
     const date = openingDate || new Date().toISOString().split('T')[0];
     
     // Group by branch 'id' and find the latest version where effective_day <= selected date
@@ -50,9 +50,7 @@ const InputPage: React.FC<InputPageProps> = ({
     }).filter(Boolean);
 
     return effective.sort((a, b) => a.display_order - b.display_order);
-  };
-
-  const effectiveBranches = getEffectiveBranches();
+  }, [militaryBranches, openingDate]);
 
   // Update max_months when branch or date changes
   React.useEffect(() => {
@@ -65,7 +63,7 @@ const InputPage: React.FC<InputPageProps> = ({
       onBranchChange(effectiveBranches[0].id);
       onMonthsChange(effectiveBranches[0].max_months);
     }
-  }, [openingDate, selectedBranchId]);
+  }, [effectiveBranches, months, onBranchChange, onMonthsChange, selectedBranchId]);
 
   return (
     <motion.div 
