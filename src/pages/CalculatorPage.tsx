@@ -10,7 +10,10 @@ interface CalculatorPageProps {
   data: GlobalData;
   selectedBranchId: string;
   months: number;
-  openingDate: Date;
+  enlistmentDate: string;
+  isJoined: boolean;
+  joinDate: string;
+  targetDate: Date;
   box1: BoxState;
   box2: BoxState;
   setBox1: React.Dispatch<React.SetStateAction<BoxState>>;
@@ -25,7 +28,10 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
   data,
   selectedBranchId,
   months,
-  openingDate,
+  enlistmentDate,
+  isJoined,
+  joinDate,
+  targetDate,
   box1,
   box2,
   setBox1,
@@ -36,7 +42,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
   onShowDetails
 }) => {
   const { globalConfigs, banks, militaryBranches } = data;
-  const config = getEffectiveConfig(globalConfigs, openingDate.toISOString().split('T')[0]);
+  const config = getEffectiveConfig(globalConfigs, targetDate.toISOString().split('T')[0]);
 
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
@@ -50,8 +56,8 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     );
   };
 
-  const res1 = calculateResult(box1, months, openingDate, banks, config);
-  const res2 = calculateResult(box2, months, openingDate, banks, config);
+  const res1 = calculateResult(box1, months, targetDate, banks, config);
+  const res2 = calculateResult(box2, months, targetDate, banks, config);
 
   const formatKRW = (val: number) => new Intl.NumberFormat('ko-KR').format(val);
 
@@ -59,7 +65,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const bank = (banks as Bank[]).find(b => b.id === boxState.bankId);
     if (!bank) return [];
     
-    const version = getRateVersionForDate(bank, openingDate);
+    const version = getRateVersionForDate(bank, targetDate);
     return version.primeRates
       .filter(p => boxState.selectedPrimeIds.includes(p.id))
       .map(p => p.group);
@@ -104,7 +110,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const borderColor = color === 'blue' ? 'border-[#1A5CFF]' : 'border-[#E0B0FF]';
     const textColor = color === 'blue' ? 'text-blue-600' : 'text-purple-600';
 
-    const version = bank ? getRateVersionForDate(bank, openingDate) : null;
+    const version = bank ? getRateVersionForDate(bank, targetDate) : null;
     const filteredPrimeRates = bank && version ? getFilteredPrimeRates(bank, months, version) : [];
 
     const minRequiredMonths = version && version.primeRates.length > 0
@@ -144,7 +150,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
             >
               <option value="" disabled>은행 선택</option>
               {banks.map(b => {
-                const v = getRateVersionForDate(b, openingDate);
+                const v = getRateVersionForDate(b, targetDate);
                 const maxPrimePct = (v.maxPrimeRate * 100).toFixed(1);
                 return (
                   <option key={b.id} value={b.id} disabled={b.id === otherBankId} className="text-slate-800">
@@ -274,6 +280,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
   };
 
   const isAnyBankNotSelected = box1.bankId === '' || box2.bankId === '';
+  const isEnlisted = enlistmentDate < new Date().toISOString().split('T')[0];
 
   return (
     <motion.div 
@@ -284,8 +291,8 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     >
       <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
         
-        {/* Header */}
-        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF] z-30 border-b border-slate-200 shadow-sm">
+        {/* Header - Fixed */}
+        <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
           <button onClick={onBack} className="p-2 text-slate-900">
             <ChevronLeft size={28} strokeWidth={2.5} />
           </button>
@@ -296,10 +303,10 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
         </header>
 
         {/* Content (Scrollable) */}
-        <div className="flex-1 px-4 py-4 pb-80">
+        <div className="flex-1 px-4 pt-20 pb-40 overflow-y-auto">
           <div className="flex flex-col mb-2 ml-1">
             <p className="text-[12px] font-bold text-slate-500">
-              입대일: {openingDate.toISOString().split('T')[0]}
+              입대일: {enlistmentDate} · {isJoined ? `적금 가입: ${joinDate}` : '적금 가입: 미가입'}
             </p>
           </div>
 
@@ -346,12 +353,14 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <button
-                onClick={onRecommend}
-                className="w-full h-14 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-black text-base shadow-sm hover:bg-blue-50 transition-all active:scale-[0.98]"
-              >
-                은행 추천받기
-              </button>
+              {!(isEnlisted && isJoined) && (
+                <button
+                  onClick={onRecommend}
+                  className="w-full h-14 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-black text-base shadow-sm hover:bg-blue-50 transition-all active:scale-[0.98]"
+                >
+                  은행 추천받기
+                </button>
+              )}
               <button 
                 onClick={() => {
                   if (import.meta.env.PROD) {

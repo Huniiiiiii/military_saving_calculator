@@ -10,8 +10,34 @@ export interface GlobalConfig {
 
 // Helper to get effective config for a given date
 export const getEffectiveConfig = (configs: GlobalConfig[], date: string): GlobalConfig => {
-  const effective = configs.find(c => c.effective_day_config <= date);
+  // Sort by effective_day_config DESC to find the latest version <= date
+  const sorted = [...configs].sort((a, b) => b.effective_day_config.localeCompare(a.effective_day_config));
+  const effective = sorted.find(c => c.effective_day_config <= date);
   return effective || configs[configs.length - 1];
+};
+
+/**
+ * 전역일 계산: 입대일과 복무 기간(개월)을 기반으로 계산
+ * 공식: 입대일 + 복무기간 - 1일
+ */
+export const calculateDischargeDate = (enlistmentDate: string, serviceMonths: number): Date => {
+  const date = new Date(enlistmentDate);
+  date.setMonth(date.getMonth() + serviceMonths);
+  date.setDate(date.getDate() - 1);
+  return date;
+};
+
+/**
+ * 달력 기준 납입 개월 수 계산
+ * 공식: (전역월 - 시작월) + 1
+ */
+export const calculateCalendarMonths = (startDate: Date, dischargeDate: Date): number => {
+  const startYear = startDate.getFullYear();
+  const startMonth = startDate.getMonth();
+  const endYear = dischargeDate.getFullYear();
+  const endMonth = dischargeDate.getMonth();
+  
+  return (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
 };
 
 export interface PrimeRate {

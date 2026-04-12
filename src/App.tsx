@@ -40,7 +40,10 @@ const App: React.FC = () => {
   const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result' | 'recommendation' | 'admin'>('onboarding');
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [months, setMonths] = useState(18);
-  const [openingDate, setOpeningDate] = useState(new Date().toISOString().split('T')[0]);
+  const [enlistmentDate, setEnlistmentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isJoined, setIsJoined] = useState(false);
+  const [joinDate, setJoinDate] = useState(new Date().toISOString().split('T')[0]);
+
   const [box1, setBox1] = useState({ bankId: '', amount: 300000, selectedPrimeIds: [] as string[] });
   const [box2, setBox2] = useState({ bankId: '', amount: 250000, selectedPrimeIds: [] as string[] });
   const [isRecommended, setIsRecommended] = useState(false);
@@ -49,6 +52,12 @@ const App: React.FC = () => {
     housingBankName: '',
     isSociallyVulnerable: false
   });
+
+  // Derived Values
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isEnlisted = enlistmentDate < todayStr;
+  
+  const targetDate = (!isEnlisted || !isJoined) ? todayStr : joinDate;
 
   // --- Data Fetching ---
   useEffect(() => {
@@ -68,7 +77,6 @@ const App: React.FC = () => {
 
         if (!configs || !branches || !banks) throw new Error('Failed to fetch required data');
 
-        // Transform into nested data structure expected by the app
         const processedBanks: Bank[] = banks.map(bank => ({
           ...bank,
           rateVersions: (versions || [])
@@ -92,6 +100,12 @@ const App: React.FC = () => {
         setGlobalData(finalData);
         setSelectedBranchId(branches[0].id);
         setMonths(branches[0].max_months);
+
+        // Initial amount setting based on today/targetDate
+        const config = getEffectiveConfig(configs, todayStr);
+        setBox1(prev => ({ ...prev, amount: config.max_deposit_per_bank }));
+        setBox2(prev => ({ ...prev, amount: config.max_total_monthly_deposit - config.max_deposit_per_bank }));
+
         setIsDataLoaded(true);
       } catch (error) {
         console.error('Error loading data:', error);
@@ -100,19 +114,18 @@ const App: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [todayStr]);
 
-  // Set initial amounts when data or openingDate is ready/changed
+  // Sync amounts when targetDate changes (only if already loaded)
   useEffect(() => {
-    if (globalData) {
-      const config = getEffectiveConfig(globalData.globalConfigs, openingDate);
+    if (isDataLoaded && globalData) {
+      const config = getEffectiveConfig(globalData.globalConfigs, targetDate);
       setBox1(prev => ({ ...prev, amount: config.max_deposit_per_bank }));
       setBox2(prev => ({ ...prev, amount: config.max_total_monthly_deposit - config.max_deposit_per_bank }));
     }
-  }, [globalData, openingDate]);
+  }, [targetDate, isDataLoaded, globalData]);
 
   const handleRefreshData = async () => {
-    // Simple way to refresh: reload page or re-run fetchData logic
     window.location.reload();
   };
 
@@ -128,17 +141,6 @@ const App: React.FC = () => {
     setStep('result');
   };
 
-  if (!isDataLoaded || !globalData) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-50 border-t-blue-500 rounded-full animate-spin"></div>
-          <p className="text-slate-400 font-bold text-sm">최신 금리 정보를 불러오는 중...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="font-sans antialiased text-slate-900 overflow-x-hidden">
       <AnimatePresence mode="wait">
@@ -146,78 +148,99 @@ const App: React.FC = () => {
           <Onboarding key="onboarding" onStart={() => setStep('input')} onAdmin={() => setStep('admin')} />
         )}
         
-        {step === 'input' && (
-          <InputPage 
-            key="input"
-            data={globalData}
-            selectedBranchId={selectedBranchId}
-            onBranchChange={setSelectedBranchId}
-            months={months}
-            onMonthsChange={setMonths}
-            openingDate={openingDate}
-            onOpeningDateChange={setOpeningDate}
-            onNext={() => setStep('calculator')}
-            onBack={() => setStep('onboarding')}
-          />
-        )}
+        {step !== 'onboarding' && (!isDataLoaded || !globalData ? (
+          <div key="loading" className="min-h-screen bg-white flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-4 border-blue-50 border-t-blue-500 rounded-full animate-spin"></div>
+              <p className="text-slate-400 font-bold text-sm">최신 금리 정보를 불러오는 중...</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {step === 'input' && (
+              <InputPage 
+                key="input"
+                data={globalData}
+                selectedBranchId={selectedBranchId}
+                onBranchChange={setSelectedBranchId}
+                months={months}
+                onMonthsChange={setMonths}
+                enlistmentDate={enlistmentDate}
+                onEnlistmentDateChange={setEnlistmentDate}
+                isJoined={isJoined}
+                onIsJoinedChange={setIsJoined}
+                joinDate={joinDate}
+                onJoinDateChange={setJoinDate}
+                onNext={() => setStep('calculator')}
+                onBack={() => setStep('onboarding')}
+              />
+            )}
 
-        {step === 'calculator' && (
-          <CalculatorPage 
-            key="calculator"
-            data={globalData}
-            selectedBranchId={selectedBranchId}
-            months={months}
-            openingDate={new Date(openingDate)}
-            box1={box1}
-            box2={box2}
-            setBox1={setBox1}
-            setBox2={setBox2}
-            onBack={() => setStep('input')}
-            onRecommend={() => setStep('recommendation')}
-            onReset={() => {
-              const config = getEffectiveConfig(globalData.globalConfigs, openingDate);
-              setBox1({ bankId: '', amount: config.max_deposit_per_bank, selectedPrimeIds: [] });
-              setBox2({ bankId: '', amount: config.max_total_monthly_deposit - config.max_deposit_per_bank, selectedPrimeIds: [] });
-              setIsRecommended(false);
-            }}
-            onShowDetails={() => setStep('result')}
-          />
-        )}
+            {step === 'calculator' && (
+              <CalculatorPage 
+                key="calculator"
+                data={globalData}
+                selectedBranchId={selectedBranchId}
+                months={months}
+                enlistmentDate={enlistmentDate}
+                isJoined={isJoined}
+                joinDate={joinDate}
+                targetDate={new Date(targetDate)}
+                box1={box1}
+                box2={box2}
+                setBox1={setBox1}
+                setBox2={setBox2}
+                onBack={() => setStep('input')}
+                onRecommend={() => setStep('recommendation')}
+                onReset={() => {
+                  const config = getEffectiveConfig(globalData.globalConfigs, targetDate);
+                  setBox1({ bankId: '', amount: config.max_deposit_per_bank, selectedPrimeIds: [] });
+                  setBox2({ bankId: '', amount: config.max_total_monthly_deposit - config.max_deposit_per_bank, selectedPrimeIds: [] });
+                  setIsRecommended(false);
+                }}
+                onShowDetails={() => setStep('result')}
+              />
+            )}
 
-        {step === 'recommendation' && (
-          <RecommendationPage 
-            key="recommendation"
-            data={globalData}
-            months={months}
-            openingDate={new Date(openingDate)}
-            onBack={() => setStep('calculator')}
-            onComplete={handleRecommendationComplete}
-          />
-        )}
+            {step === 'recommendation' && (
+              <RecommendationPage 
+                key="recommendation"
+                data={globalData}
+                months={months}
+                openingDate={new Date(targetDate)}
+                onBack={() => setStep('calculator')}
+                onComplete={handleRecommendationComplete}
+              />
+            )}
 
-        {step === 'result' && (
-          <ResultPage 
-            key="result"
-            data={globalData}
-            selectedBranchId={selectedBranchId}
-            months={months}
-            openingDate={new Date(openingDate)}
-            box1={box1}
-            box2={box2}
-            isRecommended={isRecommended}
-            recommendationInfo={recommendationInfo}
-            onBack={() => setStep('calculator')}
-          />
-        )}
+            {step === 'result' && (
+              <ResultPage 
+                key="result"
+                data={globalData}
+                selectedBranchId={selectedBranchId}
+                months={months}
+                enlistmentDate={enlistmentDate}
+                isJoined={isJoined}
+                joinDate={joinDate}
+                targetDate={new Date(targetDate)}
+                box1={box1}
+                box2={box2}
+                isRecommended={isRecommended}
+                recommendationInfo={recommendationInfo}
+                onBack={() => setStep('calculator')}
+              />
+            )}
 
-        {step === 'admin' && (
-          <AdminPage 
-            key="admin"
-            initialData={globalData}
-            onBack={() => setStep('onboarding')}
-            onRefresh={handleRefreshData}
-          />
-        )}
+            {step === 'admin' && (
+              <AdminPage 
+                key="admin"
+                initialData={globalData}
+                onBack={() => setStep('onboarding')}
+                onRefresh={handleRefreshData}
+              />
+            )}
+          </>
+        ))}
       </AnimatePresence>
     </div>
   );

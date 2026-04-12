@@ -11,7 +11,10 @@ interface ResultPageProps {
   data: GlobalData;
   selectedBranchId: string;
   months: number;
-  openingDate: Date;
+  enlistmentDate: string;
+  isJoined: boolean;
+  joinDate: string;
+  targetDate: Date;
   box1: BoxState;
   box2: BoxState;
   isRecommended?: boolean;
@@ -27,7 +30,10 @@ const ResultPage: React.FC<ResultPageProps> = ({
   data,
   selectedBranchId,
   months,
-  openingDate,
+  enlistmentDate,
+  isJoined,
+  joinDate,
+  targetDate,
   box1,
   box2,
   isRecommended,
@@ -35,7 +41,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
   onBack,
 }) => {
   const { globalConfigs, banks, militaryBranches } = data;
-  const config = getEffectiveConfig(globalConfigs, openingDate.toISOString().split('T')[0]);
+  const config = getEffectiveConfig(globalConfigs, targetDate.toISOString().split('T')[0]);
 
   const [expandedBankIdx, setExpandedBankIdx] = useState<number | null>(null);
   const [userName, setUserName] = useState('');
@@ -45,8 +51,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
   const captureRef = useRef<HTMLDivElement>(null);
   const currentBranch = militaryBranches.find((b) => b.id === selectedBranchId) || militaryBranches[0];
 
-  const res1 = calculateResult(box1, months, openingDate, banks, config);
-  const res2 = calculateResult(box2, months, openingDate, banks, config);
+  const res1 = calculateResult(box1, months, targetDate, banks, config);
+  const res2 = calculateResult(box2, months, targetDate, banks, config);
   const totalPrincipal = res1.principal + res2.principal;
   const totalInterest = res1.bankInterest + res2.bankInterest;
   const totalMatching = res1.matchingSupport + res2.matchingSupport;
@@ -95,7 +101,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
       const userAgent = navigator.userAgent.toLowerCase();
       const isIOS = /iphone|ipad|ipod/i.test(userAgent);
       
-      // 1. iOS: Use system share if available
       if (isIOS && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
         const file = new File([blob], fileName, { type: 'image/png' });
         await navigator.share({
@@ -104,7 +109,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
           text: '나의 예상 만기 수령액을 확인해보세요!'
         });
       } 
-      // 2. Android & Windows/PC: Direct download
       else {
         const dataUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -158,15 +162,9 @@ const ResultPage: React.FC<ResultPageProps> = ({
     }
   };
 
-  const formattedOpeningDate = openingDate.toISOString().split('T')[0];
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const opening = new Date(openingDate);
-  opening.setHours(0, 0, 0, 0);
-  const diffDays = Math.floor((opening.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  const showEnlistmentWarning = diffDays >= 21;
-
+  
   return (
     <motion.div 
       initial={{ opacity: 0, x: 20 }} 
@@ -179,8 +177,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
         className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]"
       >
         
-        {/* Header */}
-        <header className="w-full h-16 px-4 flex items-center justify-between sticky top-0 bg-[#F8FAFF] z-30 border-b border-slate-200 shadow-sm">
+        {/* Header - Fixed */}
+        <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
           <button onClick={onBack} className="p-2 text-slate-900">
             <ChevronLeft size={28} strokeWidth={2.5} />
           </button>
@@ -190,26 +188,28 @@ const ResultPage: React.FC<ResultPageProps> = ({
           </button>
         </header>
 
-        <div className="flex-1 px-4 pt-4 pb-20">
+        <div className="flex-1 px-4 pt-20 pb-60 overflow-y-auto">
           <div className="flex justify-between items-start mb-4 ml-1">
             <div className="flex flex-col">
               <p className="text-[12px] font-bold text-slate-500">
-                입대일: {formattedOpeningDate}
+                입대일: {enlistmentDate} · {isJoined ? `적금 가입: ${joinDate}` : '적금 가입: 미가입'}
               </p>
-              {showEnlistmentWarning && (
+              {!isJoined && (
                 <div className="mt-2 flex gap-1.5 items-start bg-amber-50/50 p-2 rounded-lg border border-amber-100/50 max-w-[360px]">
-                  <Info size={12} className="text-amber-500 shrink-0 mt-0.5" />
+                  <div className="shrink-0 mt-0.5">
+                    <Info size={12} className="text-amber-500" />
+                  </div>
                   <p className="text-[10px] font-medium text-amber-600 leading-tight">
-                    훈련소 입소 며칠 전, 최신 금리 정보를 꼭 다시 확인해 주세요.
+                    적금 가입전 최신 금리 정보를 꼭 다시 확인해 주세요.
                   </p>
                 </div>
               )}
             </div>
-            {!isRecommended && (
-              <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
-                                    <Calendar size={12} className="shrink-0" /><span className="leading-none">{months}개월</span>
-              </div>
-            )}
+            {/* Always show months badge in the top-right */}
+            <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1 shrink-0">
+              <Calendar size={12} className="shrink-0" />
+              <span className="leading-none">{months}개월</span>
+            </div>
           </div>
 
           {(userName || isCapturing) && (
@@ -229,9 +229,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
               </div>
               {recommendationInfo && (
                 <div className="flex flex-wrap gap-1.5 ml-1">
-                  <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
-                    <Calendar size={12} className="shrink-0" /><span className="leading-none">{months}개월</span>
-                  </div>
                   <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1">
                     {recommendationInfo.hanaSalary ? (
                       <>
@@ -517,7 +514,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
         </div>
 
         {!isCapturing && (
-          <div className="sticky bottom-0 left-0 w-full p-4 pb-6 bg-[#F8FAFF] z-30 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex flex-col items-center gap-3">
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] p-4 pb-6 bg-[#F8FAFF]/95 backdrop-blur-sm z-30 border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] flex flex-col items-center gap-3">
             <button 
               onClick={() => {
                 if (import.meta.env.PROD) {
