@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Check } from 'lucide-react';
+import { ChevronLeft, Check, Calendar as CalendarIcon } from 'lucide-react';
 import type { GlobalData } from '../App';
 import { calculateDischargeDate, calculateCalendarMonths } from '../utils/savingsUtils';
 
@@ -95,12 +95,11 @@ const InputPage: React.FC<InputPageProps> = ({
     return Math.min(calendarMonths, currentBranch?.max_months || 18);
   }, [isEnlisted, isJoined, today, enlistmentDate, joinDate, dischargeDateObj, currentBranch]);
 
-  // Update months if it exceeds maxPossibleMonths
+  // 군종이나 날짜가 변경되어 최대 가능 개월수가 바뀌면, 자동으로 해당 값을 기본값으로 설정합니다.
+  // "최대 납입가능 개월이 항상 나오도록 기본으로" 요청 사항 반영
   React.useEffect(() => {
-    if (months > maxPossibleMonths) {
-      onMonthsChange(maxPossibleMonths);
-    }
-  }, [maxPossibleMonths, months, onMonthsChange]);
+    onMonthsChange(maxPossibleMonths);
+  }, [maxPossibleMonths, selectedBranchId, onMonthsChange]);
 
   // Update selected branch if needed
   React.useEffect(() => {
@@ -164,7 +163,13 @@ const InputPage: React.FC<InputPageProps> = ({
           {/* 2. 입대일/가입일 선택 */}
           <section className="mb-6">
             <h2 className="text-[13px] font-bold text-slate-500 mb-3 ml-1">입대일</h2>
-            <div className="relative">
+            <div className="relative group">
+              {/* 날짜 표시용 가짜 인풋 (비주얼 일관성용) */}
+              <div className="absolute inset-0 w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 flex items-center justify-between font-bold text-slate-900 pointer-events-none group-focus-within:ring-2 group-focus-within:ring-[#2272eb] group-focus-within:border-transparent transition-all shadow-sm">
+                <span>{enlistmentDate ? enlistmentDate.replace(/-/g, '. ') : '날짜를 선택하세요'}</span>
+                <CalendarIcon size={20} className="text-slate-400" />
+              </div>
+              {/* 실제 입력을 받는 히든 인풋 */}
               <input
                 type="date"
                 value={enlistmentDate}
@@ -180,7 +185,7 @@ const InputPage: React.FC<InputPageProps> = ({
                     onIsJoinedChange(false);
                   }
                 }}
-                className="w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 font-bold text-slate-900 focus:ring-2 focus:ring-[#2272eb] focus:border-transparent transition-all shadow-sm"
+                className="w-full h-14 opacity-0 cursor-pointer relative z-10"
               />
               <p className="mt-2 ml-1 text-[11px] text-slate-400 leading-relaxed">
                 * 가입 시점의 금리를 기준으로 계산하기 위해 필요해요.<br/>
@@ -211,14 +216,20 @@ const InputPage: React.FC<InputPageProps> = ({
               {isJoined && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                   <h2 className="text-[13px] font-bold text-slate-500 mb-3 ml-1">적금 가입일</h2>
-                  <input
-                    type="date"
-                    value={joinDate}
-                    max={todayStr}
-                    min={enlistmentDate}
-                    onChange={(e) => onJoinDateChange(e.target.value)}
-                    className="w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 font-bold text-slate-900 focus:ring-2 focus:ring-[#2272eb] focus:border-transparent transition-all shadow-sm"
-                  />
+                  <div className="relative group">
+                    <div className="absolute inset-0 w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 flex items-center justify-between font-bold text-slate-900 pointer-events-none group-focus-within:ring-2 group-focus-within:ring-[#2272eb] group-focus-within:border-transparent transition-all shadow-sm">
+                      <span>{joinDate ? joinDate.replace(/-/g, '. ') : '날짜를 선택하세요'}</span>
+                      <CalendarIcon size={20} className="text-slate-400" />
+                    </div>
+                    <input
+                      type="date"
+                      value={joinDate}
+                      max={todayStr}
+                      min={enlistmentDate}
+                      onChange={(e) => onJoinDateChange(e.target.value)}
+                      className="w-full h-14 opacity-0 cursor-pointer relative z-10"
+                    />
+                  </div>
                 </div>
               )}
             </section>
