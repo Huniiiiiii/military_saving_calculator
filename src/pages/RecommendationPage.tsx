@@ -243,24 +243,24 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   const stepContent = [
     {
       id: 1,
-      title: "현재 주택청약\n통장이 있으신가요?",
-      description: "청약 여부에 따라 우대 금리 전략이 달라져요.",
+      title: "주택청약 통장이 있어요?",
+      description: "청약에 따라 우대금리 전략이 달라질 수 있어요.",
       icon: <HelpCircle className="text-blue-500" size={24} />,
       content: (
         <div className="grid grid-cols-2 gap-3">
           <button onClick={() => setHasHousing(true)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hasHousing === true ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${hasHousing === true ? 'text-blue-700' : 'text-slate-900'}`}>네</span>
+            <span className={`font-bold ${hasHousing === true ? 'text-blue-700' : 'text-slate-900'}`}>있어요</span>
           </button>
           <button onClick={() => { setHasHousing(false); setShowHousingSheet(true); }} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hasHousing === false ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${hasHousing === false ? 'text-blue-700' : 'text-slate-900'}`}>아니오</span>
+            <span className={`font-bold ${hasHousing === false ? 'text-blue-700' : 'text-slate-900'}`}>없어요</span>
           </button>
         </div>
       )
     },
     {
       id: 2,
-      title: "청약 통장이 있는\n은행을 선택해주세요.",
-      description: "해당 은행 이용 시 우대 금리 혜택이 있어요.",
+      title: "어느 은행\n통장을 가지고있어요?",
+      description: "그 은행에서 받을 수 있는 혜택을 찾아볼게요.",
       icon: <Building2 className="text-blue-500" size={24} />,
       content: (
         <div className="grid grid-cols-1 gap-3">
@@ -274,8 +274,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 3,
-      title: "기초생활수급자\n대상자이신가요?",
-      description: "증빙이 가능한 경우 높은 우대 금리가 적용돼요.",
+      title: "기초생활수급자 대상자인가요?",
+      description: "증빙 서류가 있다면 금리를 훨씬 더 높일 수 있어요.",
       icon: <UserCheck className="text-purple-500" size={24} />,
       content: (
         <div className="flex flex-col gap-4">
@@ -288,8 +288,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 4,
-      title: "하나은행으로\n군급여를 받을건가요?",
-      description: "하나 나라사랑카드 이용 시 혜택이 추가돼요.",
+      title: "하나은행으로\n급여를 받아요?",
+      description: "하나 나라사랑카드 이용 시 혜택이 있어요.",
       icon: <Zap className="text-orange-500" size={24} />,
       content: (
         <div className="flex flex-col gap-6">
@@ -359,8 +359,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
             <div className="absolute inset-0 flex items-center justify-center"><Sparkles className="text-blue-500 animate-pulse" size={32} /></div>
           </div>
         </motion.div>
-        <h2 className="text-2xl font-black text-slate-900 mb-4 break-keep">사용자의 조건으로<br/>주요 은행 데이터를 분석하고 있어요...</h2>
-        <p className="text-slate-400 font-medium animate-pulse">최적의 이자 수익 조합을 계산하고 있어요</p>
+        <h2 className="text-2xl font-black text-slate-900 mb-4 break-keep">최고 이자 조합 찾는 중...</h2>
+        <p className="text-slate-400 font-medium animate-pulse">조건에 딱 맞는 은행을 고르고 있어요</p>
       </div>
     );
   }

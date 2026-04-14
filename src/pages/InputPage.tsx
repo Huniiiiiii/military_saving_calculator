@@ -170,10 +170,10 @@ const InputPage: React.FC<InputPageProps> = ({
               <input
                 type="date"
                 value={enlistmentDate}
-                min="2024-03-30"
+                min="2026-03-30"
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (val && val < '2024-03-30') {
+                  if (val && val < '2026-03-30') {
                     alert('2026년 3월 30일 이후 입대자만 확인할 수 있어요.');
                     return;
                   }
