@@ -198,7 +198,7 @@ const InputPage: React.FC<InputPageProps> = ({
                     {isJoined && <Check size={16} color="white" strokeWidth={4} />}
                   </div>
                 </div>
-                <span className="text-[14px] font-bold text-slate-700">이미 가입한 적금이 있나요?</span>
+                <span className="text-[14px] font-bold text-slate-700">이미 가입한 군적금이 있나요?</span>
               </label>
 
               {isJoined && (
