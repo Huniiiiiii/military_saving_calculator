@@ -125,7 +125,7 @@ const InputPage: React.FC<InputPageProps> = ({
           >
             <ChevronLeft size={28} strokeWidth={2.5} />
           </button>
-          <h1 className="text-[17px] font-bold text-slate-900">복무 정보 입력</h1>
+          <h1 className="text-[17px] font-bold text-slate-900">내 복무 정보</h1>
           <div className="w-11" />
         </header>
 
@@ -166,7 +166,7 @@ const InputPage: React.FC<InputPageProps> = ({
             <div className="relative group">
               {/* 날짜 표시용 가짜 인풋 (비주얼 일관성용) */}
               <div className="absolute inset-0 w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 flex items-center justify-between font-bold text-slate-900 pointer-events-none group-focus-within:ring-2 group-focus-within:ring-[#2272eb] group-focus-within:border-transparent transition-all shadow-sm">
-                <span>{enlistmentDate ? enlistmentDate.replace(/-/g, '. ') : '날짜를 선택하세요'}</span>
+                <span>{enlistmentDate ? enlistmentDate.replace(/-/g, '. ') : '날짜 선택'}</span>
                 <CalendarIcon size={20} className="text-slate-400" />
               </div>
               {/* 실제 입력을 받는 히든 인풋 */}
@@ -177,7 +177,7 @@ const InputPage: React.FC<InputPageProps> = ({
                 onChange={(e) => {
                   const val = e.target.value;
                   if (val && val < '2026-03-30') {
-                    alert('2026년 3월 30일 이전 날짜는 선택할 수 없습니다.');
+                    alert('2026년 3월 30일 이후 입대자만 확인할 수 있어요.');
                     return;
                   }
                   onEnlistmentDateChange(val);
@@ -188,8 +188,7 @@ const InputPage: React.FC<InputPageProps> = ({
                 className="w-full h-14 opacity-0 cursor-pointer relative z-10"
               />
               <p className="mt-2 ml-1 text-[11px] text-slate-400 leading-relaxed">
-                * 가입 시점의 금리를 기준으로 계산하기 위해 필요해요.<br/>
-                (2026년 3월 30일 이후 입대자만 지원해요.)
+                * 정확한 금리를 확인하기 위해 필요해요.<br/> (2026. 03. 30. 이후 입대자 대상)
               </p>
             </div>
           </section>
@@ -210,7 +209,7 @@ const InputPage: React.FC<InputPageProps> = ({
                     {isJoined && <Check size={16} color="white" strokeWidth={4} />}
                   </div>
                 </div>
-                <span className="text-[14px] font-bold text-slate-700">이미 적금에 가입하셨나요?</span>
+                <span className="text-[14px] font-bold text-slate-700">이미 가입한 적금이 있나요?</span>
               </label>
 
               {isJoined && (
@@ -240,7 +239,7 @@ const InputPage: React.FC<InputPageProps> = ({
             <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex flex-col gap-1">
               <p className="text-red-600 font-bold text-[13px]">가입 불가 안내</p>
               <p className="text-red-500 text-[12px] leading-relaxed">
-                전역까지 30일 미만으로 남아 신규 가입이 불가능합니다.<br/>
+                지금은 가입할 수 없어요 / 전역이 30일보다 적게 남으면 신규 가입이 어려워요.<br/>
                 (예상 전역일: {dischargeDateStr})
               </p>
             </div>
@@ -249,11 +248,11 @@ const InputPage: React.FC<InputPageProps> = ({
           {/* 3. Blue Card for Months Input */}
           <section className="relative px-1 mt-1">
             <div className="w-full bg-[#2272eb] rounded-[2rem] py-6 px-6 flex flex-col items-center shadow-[0_15px_35px_rgba(26,92,255,0.15)]">
-              <p className="text-blue-100 text-[10px] font-medium mb-1">자신의 복무기간에 맞는</p>
+              <p className="text-blue-100 text-[10px] font-medium mb-1">복무 기간에 맞춰</p>
               <h3 className="text-white text-[15px] font-bold mb-5 text-center">
-                {isJoined ? '선택하신 납입 개월을 입력해주세요' : (
+                {isJoined ? '납입 개월을 알려주세요' : (
                   <>
-                    장병내일준비적금<br/>희망 납입 개월을 입력해주세요
+                    몇 개월 동안 모을까요?
                   </>
                 )}
               </h3>
@@ -278,7 +277,7 @@ const InputPage: React.FC<InputPageProps> = ({
                 <span className="absolute right-4 bottom-3 text-[10px] font-black text-[#2272eb]">개월</span>
               </div>
               <p className="mt-3 text-blue-200 text-[11px] font-bold">
-                최대 {maxPossibleMonths}개월 납입 가능
+                최대 {maxPossibleMonths}개월까지 모을 수 있어요
               </p>
             </div>
           </section>
