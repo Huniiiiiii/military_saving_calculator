@@ -71,15 +71,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
               <span className="text-2xl font-black text-slate-900">장병내일준비적금</span>
             </h1>
             <p className="text-slate-400 font-bold mb-4 text-sm">
-              가장 확실한 군 생활 재테크<br />
-              지금 바로 계산해 보세요.
+              이자부터 지원금까지<br />똑똑이가 한눈에 보여줄게요
             </p>
 
             <div className="grid grid-cols-3 gap-2 mb-4 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
               {[
-                { label: "최고 기본 5.0%", sub: "은행 금리" },
-                { label: "15.4% 면제", sub: "비과세" },
-                { label: "원금 100%", sub: "정부 지원" },
+                { label: "최고 10.5%", sub: "은행 금리" },
+                { label: "세금 0원", sub: "비과세" },
+                { label: "원금만큼 더", sub: "정부 지원" },
               ].map((item, i) => (
                 <div key={i} className="flex flex-col items-center">
                   <span className="text-[12px] font-black text-slate-800">{item.label}</span>
@@ -92,7 +91,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
               onClick={handleStart}
               className="group w-full py-4 bg-[#2D6A6D] text-white rounded-xl font-black text-base flex items-center justify-center gap-2 shadow-lg hover:bg-[#1f4a4c] transition-all active:scale-[0.98]"
             >
-              내 군적금 계산하기
+              얼마 받는지 확인하기
               <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </button>
 
@@ -102,7 +101,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
               rel="noopener noreferrer"
               className="mt-5 flex items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
             >
-              <span className="text-[11px] font-bold border-b border-slate-300">장병내일준비적금이란?</span>
+              <span className="text-[11px] font-bold border-b border-slate-300">적금이 궁금하다면?</span>
               <ChevronRight size={12} strokeWidth={3} />
             </a>
 

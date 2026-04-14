@@ -202,7 +202,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
                     <Info size={12} className="text-amber-500" />
                   </div>
                   <p className="text-[10px] font-medium text-amber-600 leading-tight">
-                    적금 가입전 최신 금리 정보를 꼭 다시 확인해 주세요.
+                    가입하기 전에 금리를 한 번 더 확인해요
                   </p>
                 </div>
               )}
@@ -333,7 +333,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
 
             <h3 className="text-lg font-black text-slate-900 px-1 pt-4 flex items-center gap-2">
               <Landmark size={20} className="text-blue-600" />
-              은행별 상세 금리 및 우대 조건
+              은행별 조건
             </h3>
 
             {[res1, res2].map((res, idx) => {
@@ -373,7 +373,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
                         <p className="text-[11px] font-bold text-slate-400 mt-0.5">월 {formatKRW(res.monthlyAmount)}원 납입</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">최종 적용 금리</p>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">내가 받는 금리</p>
                         <p className={`text-2xl font-black ${idx === 0 ? 'text-blue-600' : 'text-purple-600'}`}>
                           {((res.baseRate + res.primeRate) * 100).toFixed(1)}%
                         </p>
@@ -571,8 +571,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
             >
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 mb-2">결과 공유하기</h3>
-                  <p className="text-sm text-slate-500 font-medium">이름을 입력하면 결과지에 함께 표시됩니다.</p>
+                  <h3 className="text-xl font-black text-slate-900 mb-2">내 결과 공유하기</h3>
+                  <p className="text-sm text-slate-500 font-medium">결과지에 이름을 넣을 수 있어요.</p>
                 </div>
                 <button onClick={() => setIsNameModalOpen(false)} className="p-2 text-slate-400">
                   <X size={24} />
@@ -602,7 +602,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
                     ) : (
                       <>
                         <Download size={20} />
-                        결과 이미지 저장하기
+                        이미지로 저장하기
                       </>
                     )}
                   </button>
@@ -611,7 +611,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
                     className="w-full h-14 bg-slate-100 text-slate-900 rounded-2xl font-bold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                   >
                     <Share2 size={20} />
-                    서비스 링크 공유하기
+                    링크 공유하기
                   </button>
                 </div>
               </div>

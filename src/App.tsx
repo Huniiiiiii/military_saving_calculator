@@ -8,9 +8,10 @@ import ResultPage from './pages/ResultPage';
 import AdminPage from './pages/AdminPage';
 import RecommendationPage from './pages/RecommendationPage';
 import InquiryPage from './pages/InquiryPage';
+import DischargeCelebrationPage from './pages/DischargeCelebrationPage';
 import type { RecommendationResult } from './pages/RecommendationPage';
 import { supabase } from './lib/supabase';
-import { getEffectiveConfig } from './utils/savingsUtils';
+import { getEffectiveConfig, calculateDischargeDate } from './utils/savingsUtils';
 import type { Bank, GlobalConfig } from './utils/savingsUtils';
 
 export interface GlobalData {
@@ -27,18 +28,15 @@ export interface GlobalData {
   banks: Bank[];
 }
 
-// Initialize GA4 with your Measurement ID
 if (import.meta.env.PROD) {
   ReactGA.initialize('G-3K28LXY5ZB');
 }
 
 const App: React.FC = () => {
-  // --- Global Data States ---
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [globalData, setGlobalData] = useState<GlobalData | null>(null);
 
-  // --- App Flow States ---
-  const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result' | 'recommendation' | 'admin' | 'inquiry'>('onboarding');
+  const [step, setStep] = useState<'onboarding' | 'input' | 'calculator' | 'result' | 'recommendation' | 'admin' | 'inquiry' | 'discharge-celebration'>('onboarding');
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [months, setMonths] = useState(18);
   const [enlistmentDate, setEnlistmentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -54,13 +52,10 @@ const App: React.FC = () => {
     isSociallyVulnerable: false
   });
 
-  // Derived Values
   const todayStr = new Date().toISOString().split('T')[0];
   const isEnlisted = enlistmentDate < todayStr;
-  
   const targetDate = (!isEnlisted || !isJoined) ? todayStr : joinDate;
 
-  // --- Data Fetching ---
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -102,7 +97,6 @@ const App: React.FC = () => {
         setSelectedBranchId(branches[0].id);
         setMonths(branches[0].max_months);
 
-        // Initial amount setting based on today/targetDate
         const config = getEffectiveConfig(configs, todayStr);
         setBox1(prev => ({ ...prev, amount: config.max_deposit_per_bank }));
         setBox2(prev => ({ ...prev, amount: config.max_total_monthly_deposit - config.max_deposit_per_bank }));
@@ -117,7 +111,6 @@ const App: React.FC = () => {
     fetchData();
   }, [todayStr]);
 
-  // Sync amounts when targetDate changes (only if already loaded)
   useEffect(() => {
     if (isDataLoaded && globalData) {
       const config = getEffectiveConfig(globalData.globalConfigs, targetDate);
@@ -174,6 +167,7 @@ const App: React.FC = () => {
                 onJoinDateChange={setJoinDate}
                 onNext={() => setStep('calculator')}
                 onBack={() => setStep('onboarding')}
+                onGoCelebration={() => setStep('discharge-celebration')}
               />
             )}
 
@@ -237,6 +231,15 @@ const App: React.FC = () => {
               <InquiryPage 
                 key="inquiry"
                 onBack={() => setStep('result')}
+              />
+            )}
+
+            {step === 'discharge-celebration' && (
+              <DischargeCelebrationPage
+                key="discharge-celebration"
+                dischargeDate={calculateDischargeDate(enlistmentDate, globalData.militaryBranches.find(b => b.id === selectedBranchId)?.max_months || 18).toISOString().split('T')[0]}
+                onBack={() => setStep('input')}
+                onClose={() => setStep('input')}
               />
             )}
 
