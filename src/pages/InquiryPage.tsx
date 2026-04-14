@@ -113,7 +113,7 @@ const InquiryPage: React.FC<InquiryPageProps> = ({ onBack }) => {
         <div className="relative z-10">
           <h3 className="text-2xl font-black mb-2 flex items-center gap-3">
             <Trophy size={28} />
-            군적금 똑똑이만의 장점
+            군적금 똑똑이의 장점
           </h3>
           <p className="text-slate-400 font-bold leading-relaxed break-keep">단순히 숫자만 보여주는 게 아니에요.<br />장병님께 가장 든든한 금융 파트너가 될게요.</p>
         </div>
