@@ -377,7 +377,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
                 disabled={(step === 1 && hasHousing === null) || (step === 2 && housingBankId === '') || (step === 4 && hanaSalary === null)}
                 className="w-full h-16 bg-[#1A5CFF] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-50"
               >
-                {step === 4 ? "분석 시작하기" : "다음으로"}
+                {step === 4 ? "추천받기" : "다음으로"}
               </button>
               <div className="mt-4 flex items-center justify-center gap-2 text-slate-400">
                 <Info size={14} /><span className="text-[11px] font-bold tracking-tight">입력하신 정보는 오직 추천에만 활용돼요.</span>
