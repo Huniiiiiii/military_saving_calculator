@@ -193,7 +193,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
           {!bank ? (
              <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
-               <p className="text-[11px] font-bold text-slate-400">은행을 먼저 선택해주세요</p>
+               <p className="text-[11px] font-bold text-slate-400">은행을 먼저 골라주세요</p>
              </div>
           ) : (minRequiredMonths > 0 && months < minRequiredMonths) ? (
             <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-center">
@@ -314,7 +314,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
           <div className="mb-4 flex items-center justify-between bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
 
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-0.5">선택한 복무 정보</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-0.5">내 복무 정보</span>
               <h2 className="text-[13px] font-black text-slate-900 leading-tight">
                 {currentBranch.name} <span className="text-blue-600 ml-1">· {months}개월 납입</span>
               </h2>
@@ -333,7 +333,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <Info size={16} />
             </div>
             <p className="text-[12px] font-bold text-blue-800 leading-tight">
-              은행당 최대 {config.max_deposit_per_bank / 10000}만원, 합계 최대 {config.max_total_monthly_deposit / 10000}만원 가능
+              한 곳에 최대 {config.max_deposit_per_bank / 10000}만원, 합쳐서 {config.max_total_monthly_deposit / 10000}만원까지
             </p>
           </div>
 
@@ -376,7 +376,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 className={`w-full h-14 rounded-xl font-bold text-base shadow-lg active:scale-[0.98] transition-all
                   ${isAnyBankNotSelected ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#0F172A] text-white'}`}
               >
-                {isAnyBankNotSelected ? '은행을 선택해주세요' : '상세 분석 보기'}
+                {isAnyBankNotSelected ? '은행을 골라주세요' : '자세히 보기'}
               </button>
             </div>
           </div>
