@@ -33,6 +33,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   // --- States ---
   const [step, setStep] = useState(1);
   const [hasHousing, setHasHousing] = useState<boolean | null>(null);
+  const [wantsNewHousing, setWantsNewHousing] = useState(true);
+  const [showHousingSheet, setShowHousingSheet] = useState(false);
   const [housingBankId, setHousingBankId] = useState<string>(''); 
   const [isSociallyVulnerable, setIsSociallyVulnerable] = useState(false);
   const [hanaSalary, setHanaSalary] = useState<boolean | null>(null);
@@ -54,7 +56,9 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     setTimeout(() => {
       const bestCombination = findBestCombination();
       const housingBank = banks.find((b) => b.id === housingBankId);
-      const housingBankName = hasHousing ? (housingBank ? housingBank.name : '타행/기타') : '없음(신규가입 추천)';
+      const housingBankName = hasHousing 
+        ? (housingBank ? housingBank.name : '타행/기타') 
+        : (wantsNewHousing ? '없음(신규가입 추천)' : '없음(우대금리 미포함)');
 
       onComplete({
         isRecommended: true,
@@ -96,8 +100,11 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
         if (otherBank.id === 'hana') return;
 
         const simulateHousing = (housingToHana: boolean) => {
-          const idsHana = getOptimalIds(bankHana, true, housingToHana);
-          const idsOther = getOptimalIds(otherBank, false, !housingToHana && (hasHousing ? housingBankId === otherBank.id : true));
+          const actualHousingToHana = hasHousing ? (housingBankId === 'hana') : (housingToHana && wantsNewHousing);
+          const actualHousingToOther = hasHousing ? (housingBankId === otherBank.id) : (!housingToHana && wantsNewHousing);
+
+          const idsHana = getOptimalIds(bankHana, true, actualHousingToHana);
+          const idsOther = getOptimalIds(otherBank, false, actualHousingToOther);
 
           const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months, openingDate, banks, config);
           const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months, openingDate, banks, config);
@@ -121,10 +128,13 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
         let scenario;
         if (hasHousing) {
           scenario = simulateHousing(housingBankId === 'hana');
-        } else {
+        } else if (wantsNewHousing) {
           const s1 = simulateHousing(true);
           const s2 = simulateHousing(false);
           scenario = s1.total > s2.total ? s1 : s2;
+        } else {
+          // Both false
+          scenario = simulateHousing(false); 
         }
 
         if (scenario.total > overallBest.totalMaturity) {
@@ -155,8 +165,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
 
       bankPairs.forEach(([bankA, bankB]) => {
         const simulateScenario = (salaryAtA: boolean, housingAtA: boolean) => {
-          const actualHousingAtA = hasHousing ? (housingBankId === bankA.id) : housingAtA;
-          const actualHousingAtB = hasHousing ? (housingBankId === bankB.id) : !housingAtA;
+          const actualHousingAtA = hasHousing ? (housingBankId === bankA.id) : (housingAtA && wantsNewHousing);
+          const actualHousingAtB = hasHousing ? (housingBankId === bankB.id) : (!housingAtA && wantsNewHousing);
           
           const finalIdsA = getOptimalIds(bankA, salaryAtA, actualHousingAtA);
           const finalIdsB = getOptimalIds(bankB, !salaryAtA, actualHousingAtB);
@@ -184,10 +194,14 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
         if (hasHousing) {
           scenarios.push(simulateScenario(true, housingBankId === bankA.id));
           scenarios.push(simulateScenario(false, housingBankId === bankA.id));
-        } else {
+        } else if (wantsNewHousing) {
           scenarios.push(simulateScenario(true, true));
           scenarios.push(simulateScenario(true, false));
           scenarios.push(simulateScenario(false, true));
+          scenarios.push(simulateScenario(false, false));
+        } else {
+          // wantsNewHousing is false -> both are false
+          scenarios.push(simulateScenario(true, false));
           scenarios.push(simulateScenario(false, false));
         }
 
@@ -237,7 +251,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           <button onClick={() => setHasHousing(true)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hasHousing === true ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
             <span className={`font-bold ${hasHousing === true ? 'text-blue-700' : 'text-slate-900'}`}>네</span>
           </button>
-          <button onClick={() => setHasHousing(false)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hasHousing === false ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
+          <button onClick={() => { setHasHousing(false); setShowHousingSheet(true); }} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hasHousing === false ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
             <span className={`font-bold ${hasHousing === false ? 'text-blue-700' : 'text-slate-900'}`}>아니오</span>
           </button>
         </div>
@@ -354,39 +368,100 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   const currentStepData = stepContent.find(s => s.id === step)!;
 
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="min-h-screen bg-[#F8FAFF] flex flex-col items-center">
-      <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
-        {/* Header - Fixed */}
-        <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
-          <button onClick={handleBack} className="p-2 text-slate-900"><ChevronLeft size={28} strokeWidth={2.5} /></button>
-          <div className="flex gap-1.5">{[1, 2, 3, 4].map(i => <div key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${step === i ? 'w-6 bg-blue-500' : 'bg-slate-200'}`} />)}</div>
-          <div className="w-11" />
-        </header>
-        <div className="flex-1 px-6 pt-20 pb-48 flex flex-col overflow-y-auto">
-          <div className="mb-10">
-            <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6">{currentStepData.icon}</div>
-            <h2 className="text-2xl font-black text-slate-900 leading-tight whitespace-pre-line mb-3">{currentStepData.title}</h2>
-            <p className="text-slate-500 font-medium">{currentStepData.description}</p>
-          </div>
-          <AnimatePresence mode="wait"><motion.div key={step} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="flex-1">{currentStepData.content}</motion.div></AnimatePresence>
-          <div className="h-32" /> {/* Spacer for fixed bottom area */}
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] p-6 pb-8 bg-[#F8FAFF]/95 backdrop-blur-sm z-30 border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] flex flex-col items-center">
-            <div className="w-full">
-              <button
-                onClick={handleNext}
-                disabled={(step === 1 && hasHousing === null) || (step === 2 && housingBankId === '') || (step === 4 && hanaSalary === null)}
-                className="w-full h-16 bg-[#1A5CFF] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {step === 4 ? "추천받기" : "다음으로"}
-              </button>
-              <div className="mt-4 flex items-center justify-center gap-2 text-slate-400">
-                <Info size={14} /><span className="text-[11px] font-bold tracking-tight">입력하신 정보는 오직 추천에만 활용돼요.</span>
+    <>
+      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="min-h-screen bg-[#F8FAFF] flex flex-col items-center">
+        <div className="w-full max-w-[480px] min-h-screen flex flex-col relative bg-[#F8FAFF] sm:shadow-[0_0_80px_rgba(0,0,0,0.03)]">
+          {/* Header - Fixed */}
+          <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
+            <button onClick={handleBack} className="p-2 text-slate-900"><ChevronLeft size={28} strokeWidth={2.5} /></button>
+            <div className="flex gap-1.5">{[1, 2, 3, 4].map(i => <div key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${step === i ? 'w-6 bg-blue-500' : 'bg-slate-200'}`} />)}</div>
+            <div className="w-11" />
+          </header>
+          <div className="flex-1 px-6 pt-20 pb-48 flex flex-col overflow-y-auto">
+            <div className="mb-10">
+              <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6">{currentStepData.icon}</div>
+              <h2 className="text-2xl font-black text-slate-900 leading-tight whitespace-pre-line mb-3">{currentStepData.title}</h2>
+              <p className="text-slate-500 font-medium">{currentStepData.description}</p>
+            </div>
+            <AnimatePresence mode="wait"><motion.div key={step} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="flex-1">{currentStepData.content}</motion.div></AnimatePresence>
+            <div className="h-32" /> {/* Spacer for fixed bottom area */}
+            <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] p-6 pb-8 bg-[#F8FAFF]/95 backdrop-blur-sm z-30 border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] flex flex-col items-center">
+              <div className="w-full">
+                <button
+                  onClick={handleNext}
+                  disabled={(step === 1 && hasHousing === null) || (step === 2 && housingBankId === '') || (step === 4 && hanaSalary === null)}
+                  className="w-full h-16 bg-[#1A5CFF] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {step === 4 ? "추천받기" : "다음으로"}
+                </button>
+                <div className="mt-4 flex items-center justify-center gap-2 text-slate-400">
+                  <Info size={14} /><span className="text-[11px] font-bold tracking-tight">입력하신 정보는 오직 추천에만 활용해요.</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+
+      {/* Housing Bottom Sheet */}
+      <AnimatePresence>
+        {showHousingSheet && (
+          <div className="fixed inset-0 z-[60] flex justify-center items-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowHousingSheet(false)}
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="relative w-full max-w-[480px] bg-white rounded-t-[32px] px-6  pb-5 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] flex flex-col z-[70]"
+            >
+
+              <div className="pt-10">
+                <h3 className="text-[22px] font-bold text-[#191F28] mb-4 break-keep leading-tight tracking-tight whitespace-pre-line">
+                  연 1.0%p 더 받을 수 있어요
+                </h3>
+                
+                <p className="text-[#4E5968] font-medium mb-8 text-[16px] leading-relaxed break-keep tracking-tight whitespace-pre-line">
+                  청약 통장을 새로 만들면 우대금리가 붙어요.{"\n"}
+                  이 혜택을 포함해서 계산할까요?
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setHasHousing(false);
+                      setWantsNewHousing(false);
+                      setShowHousingSheet(false);
+                      setStep(3);
+                    }}
+                    className="flex-1 h-16 bg-[#F2F4F6] text-[#4E5968] rounded-[18px] font-bold text-[20px] active:scale-[0.98] transition-all"
+                  >
+                    닫기
+                  </button>
+                  <button
+                    onClick={() => {
+                      setHasHousing(false);
+                      setWantsNewHousing(true);
+                      setShowHousingSheet(false);
+                      setStep(3);
+                    }}
+                    className="flex-1 h-16 bg-[#3182F6] text-white rounded-[18px] font-bold text-[20px] active:scale-[0.98] transition-all"
+                  >
+                    포함하기
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
