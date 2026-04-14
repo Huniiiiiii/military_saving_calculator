@@ -249,10 +249,10 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
       content: (
         <div className="grid grid-cols-2 gap-3">
           <button onClick={() => setHasHousing(true)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hasHousing === true ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${hasHousing === true ? 'text-blue-700' : 'text-slate-900'}`}>있어요</span>
+            <span className={`font-bold ${hasHousing === true ? 'text-blue-700' : 'text-slate-900'}`}>네</span>
           </button>
           <button onClick={() => { setHasHousing(false); setShowHousingSheet(true); }} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${hasHousing === false ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${hasHousing === false ? 'text-blue-700' : 'text-slate-900'}`}>없어요</span>
+            <span className={`font-bold ${hasHousing === false ? 'text-blue-700' : 'text-slate-900'}`}>아니오</span>
           </button>
         </div>
       )
@@ -288,8 +288,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 4,
-      title: "하나은행으로\n급여를 받나요?",
-      description: "하나 나라사랑카드 이용 시 혜택이 있어요.",
+      title: "하나은행으로\n월급을 받나요?",
+      description: "월급까지 받으면 나라사랑카드 혜택이 꽉 채워져요.",
       icon: <Zap className="text-orange-500" size={24} />,
       content: (
         <div className="flex flex-col gap-6">

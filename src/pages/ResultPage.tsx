@@ -197,16 +197,15 @@ const ResultPage: React.FC<ResultPageProps> = ({
                 입대일: {enlistmentDate} · {isJoined ? `적금 가입: ${joinDate}` : '적금 가입: 미가입'}
               </p>
               {!isJoined && (
-                <div className="mt-2 flex gap-1.5 items-start bg-amber-50/50 p-2 rounded-lg border border-amber-100/50 max-w-[360px]">
-                  <div className="shrink-0 mt-0.5">
+                <div className="mt-2 flex gap-1.5 items-center justify-center bg-amber-50/50 p-2 rounded-lg border border-amber-100/50 max-w-[360px]">
+                  <div className="shrink-0">
                     <Info size={12} className="text-amber-500" />
                   </div>
-                  <p className="text-[10px] font-medium text-amber-600 leading-tight">
+                  <p className="text-[10px] font-medium text-amber-600 leading-tight text-center">
                     가입하기 전에 금리를 한 번 더 확인해요
                   </p>
                 </div>
-              )}
-            </div>
+              )}            </div>
             {/* Always show months badge in the top-right */}
             <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1 shrink-0">
               <Calendar size={12} className="shrink-0" />
@@ -227,7 +226,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
             <div className="mb-6">
               <div className="mb-2.5 bg-blue-600 rounded-xl p-3 flex items-center gap-2 text-white shadow-lg shadow-blue-200">
                 <Sparkles size={18} />
-                <span className="text-xs font-black">AI 기반 최적의 조합을 찾았어요!</span>
+                <span className="text-xs font-black">딱 맞는 조합을 찾았어요</span>
               </div>
               {recommendationInfo && (
                 <div className="flex flex-wrap gap-1.5 ml-1">
