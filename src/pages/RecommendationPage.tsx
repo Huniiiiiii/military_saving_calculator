@@ -243,7 +243,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   const stepContent = [
     {
       id: 1,
-      title: "주택청약 통장이 있어요?",
+      title: "주택청약 통장이 있나요?",
       description: "청약에 따라 우대금리 전략이 달라질 수 있어요.",
       icon: <HelpCircle className="text-blue-500" size={24} />,
       content: (
@@ -259,7 +259,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 2,
-      title: "어느 은행\n통장을 가지고있어요?",
+      title: "어느 은행\n통장을 가지고있나요?",
       description: "그 은행에서 받을 수 있는 혜택을 찾아볼게요.",
       icon: <Building2 className="text-blue-500" size={24} />,
       content: (
@@ -288,7 +288,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 4,
-      title: "하나은행으로\n급여를 받아요?",
+      title: "하나은행으로\n급여를 받나요?",
       description: "하나 나라사랑카드 이용 시 혜택이 있어요.",
       icon: <Zap className="text-orange-500" size={24} />,
       content: (
