@@ -151,7 +151,7 @@ const InputPage: React.FC<InputPageProps> = ({
                         ? 'border-[#2272eb] bg-white text-[#2272eb] shadow-sm' 
                         : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                   >
-                    <span className={displayName.length > 8 ? 'text-[11px]' : 'text-[13px]'}>
+                    <span className={displayName.length > 8 ? 'text-[13px]' : 'text-[13px]'}>
                       {displayName}
                     </span>
                   </button>
@@ -291,7 +291,7 @@ const InputPage: React.FC<InputPageProps> = ({
             disabled={months <= 0 || !isEligible}
             className="w-full h-14 bg-[#2272eb] text-white rounded-xl font-black text-base shadow-lg hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
           >
-            적금 계산하기
+            계산하기
           </button>
         </div>
       </div>
