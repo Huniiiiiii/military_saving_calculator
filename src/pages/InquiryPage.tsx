@@ -179,7 +179,7 @@ const InquiryPage: React.FC<InquiryPageProps> = ({ onBack }) => {
 
         <p className="text-[11px] text-slate-400 font-bold text-center leading-relaxed flex items-center gap-1.5 justify-center">
           <HelpCircle size={14} />
-          채팅 상담은 순차적으로 확인 후 답변해 드리고 있습니다.
+          채팅 상담은 순차적으로 확인 후 답변하고 있어요.
         </p>
       </div>
     );
