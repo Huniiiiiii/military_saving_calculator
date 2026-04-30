@@ -459,7 +459,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
                                 )}
                               </div>
                             ) : (
-                              <p className="text-[11px] text-slate-400 font-medium py-2 text-center">선택된 우대금리 조건이 없습니다.</p>
+                              <p className="text-[11px] text-slate-400 font-medium py-2 text-center">아직 선택한 우대금리가 없어요.</p>
                             )}
                           </div>
                         </motion.div>
