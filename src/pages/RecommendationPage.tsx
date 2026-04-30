@@ -330,8 +330,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 4,
-      title: "우체국 은행 첫 거래인가요?",
-      description: "첫 거래 고객이라면 더 높은 금리를 받을 수 있어요.",
+      title: "우체국 통장, 써본 적 있나요?",
+      description: "첫 사용이라면 금리를 훨씬 더 높게 받을 수 있어요.",
       icon: <Building2 className="text-blue-500" size={24} />,
       content: (
         <div className="grid grid-cols-2 gap-3">

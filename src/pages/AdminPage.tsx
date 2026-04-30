@@ -238,7 +238,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
       if (error) throw error;
 
       alert('군 정보가 성공적으로 저장되었습니다!');
-      onRefresh();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
       alert('저장 실패: ' + msg);
@@ -265,7 +264,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
       if (error) throw error;
 
       alert('글로벌 설정이 성공적으로 저장되었습니다!');
-      onRefresh();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
       alert('저장 실패: ' + msg);
@@ -293,7 +291,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
       if (error) throw error;
 
       alert('은행 정보가 성공적으로 저장되었습니다!');
-      onRefresh();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
       alert('저장 실패: ' + msg);
@@ -540,6 +537,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
           </div>
         </div>
         <div className="flex gap-2">
+          <button onClick={onBack} className="p-2 text-slate-400 hover:text-blue-500" title="홈으로 이동"><ExternalLink size={20} /></button>
           <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500"><LogOut size={20} /></button>
           <button onClick={saveToDatabase} disabled={isSaving || (step === 'editor' && !selectedVersion) || (step === 'branches' && !selectedBranch) || (step === 'configs' && !selectedConfig) || (step === 'bank_manager' && !currentBank)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg disabled:opacity-30 transition-all">
             {isSaving ? '저장 중...' : <><Save size={16} /> <span>DB 저장</span></>}
