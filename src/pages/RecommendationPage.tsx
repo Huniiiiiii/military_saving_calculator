@@ -336,10 +336,10 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
       content: (
         <div className="grid grid-cols-2 gap-3">
           <button onClick={() => setIsPoFirst(true)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${isPoFirst === true ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${isPoFirst === true ? 'text-blue-700' : 'text-slate-900'}`}>네</span>
+            <span className={`font-bold ${isPoFirst === false ? 'text-blue-700' : 'text-slate-900'}`}>네</span>
           </button>
           <button onClick={() => setIsPoFirst(false)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${isPoFirst === false ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
-            <span className={`font-bold ${isPoFirst === false ? 'text-blue-700' : 'text-slate-900'}`}>아니오</span>
+            <span className={`font-bold ${isPoFirst === true ? 'text-blue-700' : 'text-slate-900'}`}>아니오</span>
           </button>
         </div>
       )
