@@ -64,6 +64,7 @@ export interface Bank {
   name: string;
   link: string;
   rateVersions: RateVersion[];
+  isActive?: boolean;
 }
 
 export interface BoxState {
@@ -90,9 +91,9 @@ export interface CalcResult {
 /**
  * 특정 날짜에 해당하는 금리 버전을 찾습니다.
  */
-export const getRateVersionForDate = (bank: Bank, date: Date): RateVersion => {
+export const getRateVersionForDate = (bank: Bank, date: Date): RateVersion | null => {
   if (!bank.rateVersions || bank.rateVersions.length === 0) {
-    throw new Error(`Bank ${bank.name} has no rate versions.`);
+    return null;
   }
 
   const sortedVersions = [...bank.rateVersions].sort(
@@ -106,8 +107,8 @@ export const getRateVersionForDate = (bank: Bank, date: Date): RateVersion => {
 /**
  * 은행 및 개월 수에 따른 유효한 우대금리 목록을 필터링합니다.
  */
-export const getFilteredPrimeRates = (_bank: Bank, months: number, version: RateVersion) => {
-  const today = new Date();
+export const getFilteredPrimeRates = (_bank: Bank, months: number, version: RateVersion, referenceDate: Date = new Date()) => {
+  const today = new Date(referenceDate);
   today.setHours(0, 0, 0, 0);
 
   return version.primeRates.filter(prime => {
@@ -166,10 +167,28 @@ export const calculateResult = (
   }
 
   const version = getRateVersionForDate(bank, openingDate);
+  if (!version) {
+    const principal = boxState.amount * months;
+    const matchingSupport = Math.floor(principal * (config?.matching_support_rate || 1.0));
+    return { 
+      principal, 
+      bankInterest: 0, 
+      matchingSupport, 
+      total: principal + matchingSupport, 
+      baseRate: 0,
+      primeRate: 0,
+      bankName: bank.name,
+      bankLink: bank.link,
+      selectedPrimes: [],
+      isCapped: false,
+      monthlyAmount: boxState.amount,
+      effectiveDate: ''
+    };
+  }
   const baseRateObj = version.baseRates.find(r => months >= r.range[0] && months <= r.range[1]);
   const baseRate = baseRateObj ? baseRateObj.rate : 0.05;
   
-  const filteredPrimes = getFilteredPrimeRates(bank, months, version);
+  const filteredPrimes = getFilteredPrimeRates(bank, months, version, openingDate);
   const selectedPrimes = filteredPrimes.filter(p => boxState.selectedPrimeIds.includes(p.id));
   const totalSelectedPrime = selectedPrimes.reduce((sum, p) => sum + p.rate, 0);
   const appliedPrimeRate = Math.min(totalSelectedPrime, version.maxPrimeRate);

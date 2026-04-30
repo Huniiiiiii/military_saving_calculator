@@ -66,6 +66,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     if (!bank) return [];
     
     const version = getRateVersionForDate(bank, targetDate);
+    if (!version) return [];
     return version.primeRates
       .filter(p => boxState.selectedPrimeIds.includes(p.id))
       .map(p => p.group);
@@ -111,7 +112,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const textColor = color === 'blue' ? 'text-blue-600' : 'text-purple-600';
 
     const version = bank ? getRateVersionForDate(bank, targetDate) : null;
-    const filteredPrimeRates = bank && version ? getFilteredPrimeRates(bank, months, version) : [];
+    const filteredPrimeRates = bank && version ? getFilteredPrimeRates(bank, months, version, targetDate) : [];
 
     const minRequiredMonths = version && version.primeRates.length > 0
       ? Math.min(...version.primeRates.map(p => p.min_months || 0))
@@ -149,9 +150,9 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }`}
             >
               <option value="" disabled>은행 선택</option>
-              {banks.map(b => {
+              {banks.filter(b => b.isActive !== false && b.rateVersions && b.rateVersions.length > 0).map(b => {
                 const v = getRateVersionForDate(b, targetDate);
-                const maxPrimePct = (v.maxPrimeRate * 100).toFixed(1);
+                const maxPrimePct = v ? (v.maxPrimeRate * 100).toFixed(1) : '0.0';
                 return (
                   <option key={b.id} value={b.id} disabled={b.id === otherBankId} className="text-slate-800">
                     {b.name} [최대 우대 {maxPrimePct}%] {b.id === otherBankId ? '(선택됨)' : ''}

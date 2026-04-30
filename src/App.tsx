@@ -48,6 +48,7 @@ const App: React.FC = () => {
   const [isRecommended, setIsRecommended] = useState(false);
   const [recommendationInfo, setRecommendationInfo] = useState({
     hanaSalary: false,
+    isPoFirst: false,
     housingBankName: '',
     isSociallyVulnerable: false
   });
@@ -75,6 +76,7 @@ const App: React.FC = () => {
 
         const processedBanks: Bank[] = banks.map(bank => ({
           ...bank,
+          isActive: bank.is_active ?? true,
           rateVersions: (versions || [])
             .filter(v => v.bank_id === bank.id)
             .map(v => ({
@@ -129,6 +131,7 @@ const App: React.FC = () => {
     setIsRecommended(true);
     setRecommendationInfo({
       hanaSalary: res.hanaSalary,
+      isPoFirst: res.isPoFirst,
       housingBankName: res.housingBankName,
       isSociallyVulnerable: res.isSociallyVulnerable
     });
