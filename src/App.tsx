@@ -48,6 +48,7 @@ const App: React.FC = () => {
   const [isRecommended, setIsRecommended] = useState(false);
   const [recommendationInfo, setRecommendationInfo] = useState({
     hanaSalary: false,
+    isPoFirst: false,
     housingBankName: '',
     isSociallyVulnerable: false
   });
@@ -129,6 +130,7 @@ const App: React.FC = () => {
     setIsRecommended(true);
     setRecommendationInfo({
       hanaSalary: res.hanaSalary,
+      isPoFirst: res.isPoFirst,
       housingBankName: res.housingBankName,
       isSociallyVulnerable: res.isSociallyVulnerable
     });

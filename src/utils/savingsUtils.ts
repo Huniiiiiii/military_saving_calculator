@@ -57,6 +57,7 @@ export interface RateVersion {
   baseRates: { range: number[]; rate: number }[];
   primeRates: PrimeRate[];
   maxPrimeRate: number;
+  isActive?: boolean;
 }
 
 export interface Bank {
@@ -64,6 +65,7 @@ export interface Bank {
   name: string;
   link: string;
   rateVersions: RateVersion[];
+  isActive?: boolean;
 }
 
 export interface BoxState {
@@ -90,9 +92,9 @@ export interface CalcResult {
 /**
  * 특정 날짜에 해당하는 금리 버전을 찾습니다.
  */
-export const getRateVersionForDate = (bank: Bank, date: Date): RateVersion => {
+export const getRateVersionForDate = (bank: Bank, date: Date): RateVersion | null => {
   if (!bank.rateVersions || bank.rateVersions.length === 0) {
-    throw new Error(`Bank ${bank.name} has no rate versions.`);
+    return null;
   }
 
   const sortedVersions = [...bank.rateVersions].sort(
@@ -166,6 +168,24 @@ export const calculateResult = (
   }
 
   const version = getRateVersionForDate(bank, openingDate);
+  if (!version) {
+    const principal = boxState.amount * months;
+    const matchingSupport = Math.floor(principal * (config?.matching_support_rate || 1.0));
+    return { 
+      principal, 
+      bankInterest: 0, 
+      matchingSupport, 
+      total: principal + matchingSupport, 
+      baseRate: 0,
+      primeRate: 0,
+      bankName: bank.name,
+      bankLink: bank.link,
+      selectedPrimes: [],
+      isCapped: false,
+      monthlyAmount: boxState.amount,
+      effectiveDate: ''
+    };
+  }
   const baseRateObj = version.baseRates.find(r => months >= r.range[0] && months <= r.range[1]);
   const baseRate = baseRateObj ? baseRateObj.rate : 0.05;
   

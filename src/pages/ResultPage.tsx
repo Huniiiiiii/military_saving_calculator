@@ -20,6 +20,7 @@ interface ResultPageProps {
   isRecommended?: boolean;
   recommendationInfo?: {
     hanaSalary: boolean;
+    isPoFirst: boolean;
     housingBankName: string;
     isSociallyVulnerable: boolean;
   };

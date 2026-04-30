@@ -66,6 +66,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     if (!bank) return [];
     
     const version = getRateVersionForDate(bank, targetDate);
+    if (!version) return [];
     return version.primeRates
       .filter(p => boxState.selectedPrimeIds.includes(p.id))
       .map(p => p.group);
@@ -149,9 +150,9 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }`}
             >
               <option value="" disabled>은행 선택</option>
-              {banks.map(b => {
+              {banks.filter(b => b.rateVersions && b.rateVersions.length > 0).map(b => {
                 const v = getRateVersionForDate(b, targetDate);
-                const maxPrimePct = (v.maxPrimeRate * 100).toFixed(1);
+                const maxPrimePct = v ? (v.maxPrimeRate * 100).toFixed(1) : '0.0';
                 return (
                   <option key={b.id} value={b.id} disabled={b.id === otherBankId} className="text-slate-800">
                     {b.name} [최대 우대 {maxPrimePct}%] {b.id === otherBankId ? '(선택됨)' : ''}

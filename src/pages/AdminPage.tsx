@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Plus, Trash2, Save, Lock, ChevronRight, Calendar, LayoutGrid, History, Edit3, LogOut, ExternalLink, Settings2 } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Save, Lock, ChevronRight, Calendar, LayoutGrid, History, Edit3, LogOut, ExternalLink, Settings2, Building2, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import type { GlobalData } from '../App';
 import type { GlobalConfig, Bank, RateVersion } from '../utils/savingsUtils';
 
-type AdminStep = 'banks' | 'versions' | 'editor' | 'branches' | 'configs';
+type AdminStep = 'banks' | 'versions' | 'editor' | 'branches' | 'configs' | 'bank_manager';
+type EditableBank = Bank & { display_order?: number };
+type MilitaryBranch = GlobalData['militaryBranches'][number];
 
 interface AdminPageProps {
   initialData: GlobalData;
@@ -48,7 +50,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
     setUser(null);
   };
 
-  const currentBank = (fullData.banks as Bank[]).find(b => b.id === selectedBankId);
+  const currentBank = (fullData.banks as EditableBank[]).find(b => b.id === selectedBankId);
   const selectedVersion = currentBank?.rateVersions.find(v => v.id === selectedVersionId);
   const selectedBranch = fullData.militaryBranches.find(b => b.id_int === selectedBranchIntId);
   const selectedConfig = fullData.globalConfigs.find(c => c.id === selectedConfigId);
@@ -80,9 +82,19 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
       setSelectedConfigId(fullData.globalConfigs[0].id);
     }
   };
+  const goToBankManager = () => {
+    setStep('bank_manager');
+    setSelectedVersionId(null);
+    setSelectedBranchIntId(null);
+    setSelectedConfigId(null);
+    if (fullData.banks.length > 0 && !selectedBankId) {
+      setSelectedBankId(fullData.banks[0].id);
+    }
+  };
+
   const goBackStep = () => {
     if (step === 'editor') setStep('versions');
-    else if (step === 'versions' || step === 'branches' || step === 'configs') setStep('banks');
+    else if (step === 'versions' || step === 'branches' || step === 'configs' || step === 'bank_manager') setStep('banks');
     else onBack();
   };
 
@@ -96,20 +108,88 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
       await saveGlobalConfigs();
       return;
     }
+    if (step === 'bank_manager') {
+      await saveBanks();
+      return;
+    }
     if (!selectedVersion || !selectedBankId) return;
     setIsSaving(true);
     try {
-      // 1. Update Rate Version
-      const { error: vError } = await supabase
+      const maxPrimeRate = Number(selectedVersion.maxPrimeRate);
+      const payload = {
+        bank_id: selectedBankId,
+        effective_date: selectedVersion.effectiveDate,
+        max_prime_rate: Number.isFinite(maxPrimeRate) ? maxPrimeRate : 0,
+        base_rates: selectedVersion.baseRates,
+        prime_rates: selectedVersion.primeRates,
+        is_active: selectedVersion.isActive ?? true
+      };
+
+      const payloadWithoutActive = {
+        bank_id: selectedBankId,
+        effective_date: selectedVersion.effectiveDate,
+        max_prime_rate: Number.isFinite(maxPrimeRate) ? maxPrimeRate : 0,
+        base_rates: selectedVersion.baseRates,
+        prime_rates: selectedVersion.primeRates
+      };
+
+      // 1. Save Rate Version (update existing row first, then insert for new row)
+      let vError: unknown = null;
+      const { data: existingVersion, error: findError } = await supabase
         .from('rate_versions')
-        .upsert({
-          id: selectedVersionId,
-          bank_id: selectedBankId,
-          effective_date: selectedVersion.effectiveDate,
-          max_prime_rate: selectedVersion.maxPrimeRate,
-          base_rates: selectedVersion.baseRates,
-          prime_rates: selectedVersion.primeRates
-        });
+        .select('id')
+        .eq('id', selectedVersionId)
+        .maybeSingle();
+
+      if (findError) throw findError;
+
+      if (existingVersion) {
+        const { error } = await supabase
+          .from('rate_versions')
+          .update(payload)
+          .eq('id', selectedVersionId);
+        vError = error;
+
+        // Some deployments do not have rate_versions.is_active yet.
+        if (
+          vError &&
+          typeof vError === 'object' &&
+          vError !== null &&
+          'code' in vError &&
+          (vError as { code: unknown }).code === 'PGRST204'
+        ) {
+          const { error: fallbackError } = await supabase
+            .from('rate_versions')
+            .update(payloadWithoutActive)
+            .eq('id', selectedVersionId);
+          vError = fallbackError;
+        }
+      } else {
+        const { error } = await supabase
+          .from('rate_versions')
+          .insert({
+            id: selectedVersionId,
+            ...payload
+          });
+        vError = error;
+
+        // Some deployments do not have rate_versions.is_active yet.
+        if (
+          vError &&
+          typeof vError === 'object' &&
+          vError !== null &&
+          'code' in vError &&
+          (vError as { code: unknown }).code === 'PGRST204'
+        ) {
+          const { error: fallbackError } = await supabase
+            .from('rate_versions')
+            .insert({
+              id: selectedVersionId,
+              ...payloadWithoutActive
+            });
+          vError = fallbackError;
+        }
+      }
 
       if (vError) throw vError;
 
@@ -122,8 +202,21 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
       alert('성공적으로 저장되었습니다! 앱에 즉시 반영됩니다.');
       onRefresh(); // Refresh global data
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
-      alert('저장 실패: ' + msg);
+      const msg =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message: unknown }).message)
+          : '알 수 없는 오류가 발생했습니다.';
+      const details =
+        typeof error === 'object' && error !== null && 'details' in error
+          ? String((error as { details: unknown }).details)
+          : '';
+      const hint =
+        typeof error === 'object' && error !== null && 'hint' in error
+          ? String((error as { hint: unknown }).hint)
+          : '';
+
+      console.error('rate_versions save failed:', error);
+      alert(`저장 실패: ${msg}${details ? `\n상세: ${details}` : ''}${hint ? `\n힌트: ${hint}` : ''}`);
     } finally {
       setIsSaving(false);
     }
@@ -182,6 +275,91 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
     }
   };
 
+  const saveBanks = async () => {
+    setIsSaving(true);
+    try {
+      // Upsert banks
+      const banksToUpsert = fullData.banks.map(b => ({
+        id: b.id,
+        name: b.name,
+        link: b.link,
+        display_order: (b as EditableBank).display_order ?? 0,
+        is_active: b.isActive ?? true
+      }));
+
+      const { error } = await supabase
+        .from('banks')
+        .upsert(banksToUpsert);
+
+      if (error) throw error;
+
+      alert('은행 정보가 성공적으로 저장되었습니다!');
+      onRefresh();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      alert('저장 실패: ' + msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- Bank Manager Handlers ---
+  const handleAddBank = () => {
+    const newData = { ...fullData };
+    const newBankId = `bank_${Date.now()}`;
+    const newBank: EditableBank = {
+      id: newBankId,
+      name: '새로운 은행',
+      link: 'https://',
+      rateVersions: [],
+      isActive: true,
+      display_order: fullData.banks.length + 1
+    };
+    newData.banks = [...newData.banks, newBank];
+    setFullData(newData);
+    setSelectedBankId(newBankId);
+  };
+
+  const handleDeleteBank = async (id: string) => {
+    if (!window.confirm('이 은행을 정말 삭제할까요? 연결된 모든 금리 버전도 삭제됩니다.')) return;
+    
+    setIsSaving(true);
+    try {
+      // 1. Delete versions first due to FK constraints if any
+      const { error: vError } = await supabase.from('rate_versions').delete().eq('bank_id', id);
+      if (vError) throw vError;
+
+      // 2. Delete bank
+      const { error: bError } = await supabase.from('banks').delete().eq('id', id);
+      if (bError) throw bError;
+
+      const newData = { ...fullData };
+      newData.banks = newData.banks.filter(b => b.id !== id);
+      setFullData(newData);
+      setSelectedBankId(newData.banks[0]?.id || null);
+      alert('삭제되었습니다.');
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      alert('삭제 실패: ' + msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateBankField = <K extends keyof EditableBank>(oldId: string, field: K, value: EditableBank[K]) => {
+    const newData = { ...fullData };
+    const idx = newData.banks.findIndex(b => b.id === oldId);
+    if (idx !== -1) {
+      const targetBank = newData.banks[idx] as EditableBank;
+      newData.banks[idx] = { ...targetBank, [field]: value };
+      setFullData(newData);
+      // ID 필드가 변경되는 경우, 현재 선택된 ID 상태도 함께 업데이트해야 참조가 깨지지 않습니다.
+      if (field === 'id') {
+        setSelectedBankId(String(value));
+      }
+    }
+  };
+
   // --- Military Branch Handlers ---
   const handleAddBranch = () => {
     const newData = { ...fullData };
@@ -212,7 +390,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
     alert('삭제되었습니다.');
   };
 
-  const updateBranchField = (id_int: number, field: string, value: any) => {
+  const updateBranchField = <K extends keyof MilitaryBranch>(id_int: number, field: K, value: MilitaryBranch[K]) => {
     const newData = { ...fullData };
     const idx = newData.militaryBranches.findIndex(b => b.id_int === id_int);
     if (idx !== -1) {
@@ -252,7 +430,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
     alert('삭제되었습니다.');
   };
 
-  const updateConfigField = (id: number, field: string, value: any) => {
+  const updateConfigField = <K extends keyof GlobalConfig>(id: number, field: K, value: GlobalConfig[K]) => {
     const newData = { ...fullData };
     const idx = newData.globalConfigs.findIndex(c => c.id === id);
     if (idx !== -1) {
@@ -270,7 +448,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
     const newData = { ...fullData };
     const bank = newData.banks.find((b: Bank) => b.id === selectedBankId);
     if (bank) {
-      const newVersion: RateVersion = { ...latest, id: newVersionId, effectiveDate: newEffectiveDate };
+      const newVersion: RateVersion = latest 
+        ? { ...latest, id: newVersionId, effectiveDate: newEffectiveDate, isActive: true }
+        : { id: newVersionId, effectiveDate: newEffectiveDate, maxPrimeRate: 0.05, baseRates: [], primeRates: [], isActive: true };
       bank.rateVersions = [newVersion, ...bank.rateVersions];
       setFullData(newData);
       setSelectedVersionId(newVersionId);
@@ -292,7 +472,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
         if (selectedVersionId === vId) { setSelectedVersionId(null); setStep('versions'); }
       }
       alert('삭제되었습니다.');
-    } catch (error: unknown) { alert('삭제 실패'); }
+    } catch { alert('삭제 실패'); }
   };
 
   const updateVersionField = <T extends keyof RateVersion>(field: T, value: RateVersion[T]) => {
@@ -353,7 +533,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
         <div className="flex items-center gap-2">
           <button onClick={goBackStep} className="p-2 hover:bg-slate-50 rounded-xl transition-colors"><ChevronLeft size={24} /></button>
           <div className="sm:hidden font-black text-slate-900 text-sm">
-            {step === 'banks' ? '은행 선택' : step === 'configs' ? '한도 및 세율' : step === 'branches' ? '군 정보' : currentBank?.name}
+            {step === 'banks' ? '은행 선택' : step === 'configs' ? '한도 및 세율' : step === 'branches' ? '군 정보' : step === 'bank_manager' ? '은행 관리' : currentBank?.name}
           </div>
           <div className="hidden sm:block">
             <h1 className="text-lg font-black text-slate-900">데이터 센터</h1>
@@ -362,7 +542,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
         </div>
         <div className="flex gap-2">
           <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500"><LogOut size={20} /></button>
-          <button onClick={saveToDatabase} disabled={isSaving || (step === 'editor' && !selectedVersion) || (step === 'branches' && !selectedBranch) || (step === 'configs' && !selectedConfig)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg disabled:opacity-30 transition-all">
+          <button onClick={saveToDatabase} disabled={isSaving || (step === 'editor' && !selectedVersion) || (step === 'branches' && !selectedBranch) || (step === 'configs' && !selectedConfig) || (step === 'bank_manager' && !currentBank)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg disabled:opacity-30 transition-all">
             {isSaving ? '저장 중...' : <><Save size={16} /> <span>DB 저장</span></>}
           </button>
         </div>
@@ -380,28 +560,35 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
           <button onClick={goToBranches} className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl font-black text-sm transition-all mb-4 ${step === 'branches' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
             군 종류 관리 <ChevronRight size={16} opacity={0.3} />
           </button>
+          <button onClick={goToBankManager} className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl font-black text-sm transition-all mb-4 ${step === 'bank_manager' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
+            은행 목록 관리 <ChevronRight size={16} opacity={0.3} />
+          </button>
 
           <div className="flex items-center gap-2 mb-4 px-2">
             <LayoutGrid size={14} className="text-blue-500" />
-            <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Banks</p>
+            <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Banks Rates</p>
           </div>
           {fullData.banks.map((bank: Bank) => (
-            <button key={bank.id} onClick={() => goToVersions(bank.id)} className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl font-black text-sm transition-all ${selectedBankId === bank.id ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
-              {bank.name} <ChevronRight size={16} opacity={0.3} />
+            <button key={bank.id} onClick={() => goToVersions(bank.id)} className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl font-black text-sm transition-all ${selectedBankId === bank.id && (step === 'banks' || step === 'versions' || step === 'editor') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
+              <div className="flex items-center gap-2">
+                {bank.name}
+                {bank.isActive === false && <EyeOff size={12} className="opacity-50" />}
+              </div>
+              <ChevronRight size={16} opacity={0.3} />
             </button>
           ))}
         </aside>
 
-        <aside className={`w-full md:w-80 bg-[#FBFCFF] border-r border-slate-100 p-4 md:p-6 space-y-4 overflow-y-auto ${step !== 'versions' && step !== 'branches' && step !== 'configs' ? 'hidden md:block' : 'block'}`}>
+        <aside className={`w-full md:w-80 bg-[#FBFCFF] border-r border-slate-100 p-4 md:p-6 space-y-4 overflow-y-auto ${step !== 'versions' && step !== 'branches' && step !== 'configs' && step !== 'bank_manager' ? 'hidden md:block' : 'block'}`}>
           <div className="flex items-center justify-between mb-4 px-1">
             <div className="flex items-center gap-2">
               <History size={14} className="text-blue-500" />
               <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">
-                {step === 'configs' ? 'Config Records' : step === 'branches' ? 'Branch Records' : 'Versions'}
+                {step === 'configs' ? 'Config Records' : step === 'branches' ? 'Branch Records' : step === 'bank_manager' ? 'Bank Records' : 'Versions'}
               </p>
             </div>
             <button 
-              onClick={step === 'configs' ? handleAddConfig : step === 'branches' ? handleAddBranch : handleAddVersion} 
+              onClick={step === 'configs' ? handleAddConfig : step === 'branches' ? handleAddBranch : step === 'bank_manager' ? handleAddBank : handleAddVersion} 
               className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
             >
               <Plus size={18} />
@@ -434,12 +621,28 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
                   <button onClick={(e) => { e.stopPropagation(); handleDeleteBranch(branch.id_int); }} className="absolute top-4 right-2 p-3 text-slate-300 hover:text-red-500 transition-all active:scale-90"><Trash2 size={16} /></button>
                 </div>
               ))
+            ) : step === 'bank_manager' ? (
+              fullData.banks.map((bank) => (
+                <div key={bank.id} onClick={() => setSelectedBankId(bank.id)} className={`group relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${selectedBankId === bank.id ? 'bg-white border-blue-500 shadow-xl ring-4 ring-blue-50' : 'bg-white border-transparent shadow-sm hover:border-slate-200'}`}>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[15px] font-black ${selectedBankId === bank.id ? 'text-slate-900' : 'text-slate-600'}`}>{bank.name}</span>
+                      {bank.isActive === false && <EyeOff size={12} className="text-red-400" />}
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-400">{bank.id}</span>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeleteBank(bank.id); }} className="absolute top-4 right-2 p-3 text-slate-300 hover:text-red-500 transition-all active:scale-90"><Trash2 size={16} /></button>
+                </div>
+              ))
             ) : (
               currentBank?.rateVersions.map((v) => (
                 <div key={v.id} onClick={() => goToEditor(v.id)} className={`group relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${selectedVersionId === v.id ? 'bg-white border-blue-500 shadow-xl ring-4 ring-blue-50' : 'bg-white border-transparent shadow-sm hover:border-slate-200'}`}>
-                  <div className="flex items-center gap-3 mb-1">
-                    <Calendar size={14} className={selectedVersionId === v.id ? 'text-blue-500' : 'text-slate-400'} />
-                    <span className={`text-[15px] font-black ${selectedVersionId === v.id ? 'text-slate-900' : 'text-slate-600'}`}>{v.effectiveDate}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 mb-1">
+                      <Calendar size={14} className={selectedVersionId === v.id ? 'text-blue-500' : 'text-slate-400'} />
+                      <span className={`text-[15px] font-black ${selectedVersionId === v.id ? 'text-slate-900' : 'text-slate-600'}`}>{v.effectiveDate}</span>
+                    </div>
+                    {v.isActive === false && <EyeOff size={14} className="text-red-400" />}
                   </div>
                   <button onClick={(e) => { e.stopPropagation(); handleDeleteVersion(v.id); }} className="absolute top-4 right-4 p-3 text-slate-300 hover:text-red-500 transition-all active:scale-90"><Trash2 size={18} /></button>
                 </div>
@@ -448,7 +651,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
           </div>
         </aside>
 
-        <section className={`flex-1 bg-white p-4 md:p-10 overflow-y-auto ${step !== 'editor' && step !== 'branches' && step !== 'configs' ? 'hidden md:block' : 'block'}`}>
+        <section className={`flex-1 bg-white p-4 md:p-10 overflow-y-auto ${step !== 'editor' && step !== 'branches' && step !== 'configs' && step !== 'bank_manager' ? 'hidden md:block' : 'block'}`}>
           {step === 'configs' ? (
             selectedConfig ? (
               <div className="max-w-3xl mx-auto space-y-10 pb-20">
@@ -481,13 +684,70 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
                 </div>
               </div>
             ) : <div className="h-[60vh] flex flex-col items-center justify-center text-center px-6"><History size={48} className="text-slate-100 mb-4" /><h3 className="text-lg font-black text-slate-300">목록에서 군 정보를 선택해 주세요.</h3></div>
+          ) : step === 'bank_manager' ? (
+            currentBank ? (
+              <div className="max-w-3xl mx-auto space-y-10 pb-20">
+                <header><div className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest mb-1"><Building2 size={12} /> Editing Bank Info</div><h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{currentBank.name}</h2></header>
+                <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">은행 ID (영문/식별자)</label><input type="text" value={currentBank.id} onChange={(e) => updateBankField(currentBank.id, 'id', e.target.value)} className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">은행 이름</label><input type="text" value={currentBank.name} onChange={(e) => updateBankField(currentBank.id, 'name', e.target.value)} className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" /></div>
+                    <div className="space-y-1.5 sm:col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">공식 홈페이지/안내 링크</label><input type="text" value={currentBank.link} onChange={(e) => updateBankField(currentBank.id, 'link', e.target.value)} className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">정렬 순서</label><input type="number" value={currentBank.display_order ?? 0} onChange={(e) => updateBankField(currentBank.id, 'display_order', parseInt(e.target.value))} className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" /></div>
+                    <div className="space-y-4 pt-4 sm:col-span-2 border-t border-slate-200/50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-black text-slate-800">앱 내 표시 여부</p>
+                          <p className="text-[11px] font-bold text-slate-400">꺼두면 사용자에게 이 은행이 보이지 않아요.</p>
+                        </div>
+                        <button 
+                          onClick={() => updateBankField(currentBank.id, 'isActive', !(currentBank.isActive ?? true))}
+                          className={`w-14 h-8 rounded-full transition-all relative ${currentBank.isActive !== false ? 'bg-blue-600' : 'bg-slate-300'}`}
+                        >
+                          <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${currentBank.isActive !== false ? 'left-7' : 'left-1'}`} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : <div className="h-[60vh] flex flex-col items-center justify-center text-center px-6"><History size={48} className="text-slate-100 mb-4" /><h3 className="text-lg font-black text-slate-300">목록에서 은행을 선택해 주세요.</h3></div>
           ) : selectedVersion ? (
             <div className="max-w-3xl mx-auto space-y-10 pb-20">
-              <header><div className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest mb-1"><Edit3 size={12} /> Editing Mode</div><div className="flex items-center gap-3"><h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{currentBank?.name}</h2><a href={currentBank?.link} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"><ExternalLink size={18} /></a></div></header>
+              <header>
+                <div className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest mb-1"><Edit3 size={12} /> Editing Mode</div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{currentBank?.name}</h2>
+                    <a href={currentBank?.link} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"><ExternalLink size={18} /></a>
+                  </div>
+                  <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+                    <span className="text-[11px] font-black text-slate-500">버전 활성화</span>
+                    <button 
+                      onClick={() => updateVersionField('isActive', !(selectedVersion.isActive ?? true))}
+                      className={`w-12 h-7 rounded-full transition-all relative ${selectedVersion.isActive !== false ? 'bg-blue-600' : 'bg-slate-300'}`}
+                    >
+                      <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full transition-all ${selectedVersion.isActive !== false ? 'left-5.5' : 'left-0.5'}`} />
+                    </button>
+                  </div>
+                </div>
+              </header>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">시행 시작일</label><input type="date" value={selectedVersion.effectiveDate} onChange={(e) => updateVersionField('effectiveDate', e.target.value)} className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" /></div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">시행 시작일</label>
+                  <div className="relative group">
+                    <input 
+                      type="date" 
+                      value={selectedVersion.effectiveDate} 
+                      onChange={(e) => updateVersionField('effectiveDate', e.target.value)} 
+                      className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" 
+                    />
+                  </div>
+                </div>
                 <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">최대 우대금리 (예: 0.055)</label><input type="number" step="0.001" value={selectedVersion.maxPrimeRate} onChange={(e) => updateVersionField('maxPrimeRate', parseFloat(e.target.value))} className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" /></div>
               </div>
+
               <section className="space-y-4">
                 <div className="flex items-center justify-between px-1"><h3 className="font-black text-slate-900 uppercase text-sm tracking-widest">기본 금리</h3><button onClick={addBaseRate} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg font-black text-[10px]">추가</button></div>
                 <div className="space-y-2">{selectedVersion.baseRates.map((br, idx) => (
@@ -507,7 +767,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
                   <div key={pr.id} className="p-5 bg-white rounded-3xl border-2 border-slate-50 shadow-sm relative">
                     <button onClick={() => deletePrimeRate(pr.id)} className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500"><Trash2 size={16} /></button>
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-1">ID</label><input value={pr.id} readOnly className="w-full h-10 bg-slate-100 rounded-lg px-3 text-[11px] font-bold text-slate-400" /></div>
+                      <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-1">ID</label><input value={pr.id} onChange={(e) => { const nd = [...selectedVersion.primeRates]; nd[pIdx].id = e.target.value; updateVersionField('primeRates', nd); }} className="w-full h-10 bg-slate-50 rounded-lg px-3 text-[11px] font-bold" /></div>
                       <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-1">그룹</label><input value={pr.group} onChange={(e) => { const nd = [...selectedVersion.primeRates]; nd[pIdx].group = e.target.value; updateVersionField('primeRates', nd); }} className="w-full h-10 bg-slate-50 rounded-lg px-3 text-[11px] font-bold" /></div>
                       <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-1">이름</label><input value={pr.label} onChange={(e) => { const nd = [...selectedVersion.primeRates]; nd[pIdx].label = e.target.value; updateVersionField('primeRates', nd); }} className="w-full h-10 bg-slate-50 rounded-lg px-3 text-[11px] font-bold" /></div>
                       <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-1">금리</label><input type="number" step="0.001" value={pr.rate} onChange={(e) => { const nd = [...selectedVersion.primeRates]; nd[pIdx].rate = parseFloat(e.target.value); updateVersionField('primeRates', nd); }} className="w-full h-10 bg-purple-50 text-purple-600 rounded-lg px-3 text-[11px] font-black" /></div>

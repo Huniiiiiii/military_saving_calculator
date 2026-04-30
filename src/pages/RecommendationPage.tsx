@@ -11,6 +11,7 @@ export interface RecommendationResult {
   box1: BoxState;
   box2: BoxState;
   hanaSalary: boolean;
+  isPoFirst: boolean;
   housingBankName: string;
   isSociallyVulnerable: boolean;
 }
@@ -37,6 +38,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   const [showHousingSheet, setShowHousingSheet] = useState(false);
   const [housingBankId, setHousingBankId] = useState<string>(''); 
   const [isSociallyVulnerable, setIsSociallyVulnerable] = useState(false);
+  const [isPoFirst, setIsPoFirst] = useState<boolean | null>(null);
   const [hanaSalary, setHanaSalary] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,7 +50,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
       ReactGA.event({
         category: 'AI_Recommendation',
         action: 'start_analysis',
-        label: `hanaSalary_${hanaSalary}_social_${isSociallyVulnerable}`
+        label: `hanaSalary_${hanaSalary}_poFirst_${isPoFirst}_social_${isSociallyVulnerable}`
       });
     }
     
@@ -64,6 +66,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
         isRecommended: true,
         ...bestCombination,
         hanaSalary: !!hanaSalary,
+        isPoFirst: !!isPoFirst,
         housingBankName,
         isSociallyVulnerable
       });
@@ -74,21 +77,25 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     const primaryAmount = config.max_deposit_per_bank;
     const secondaryAmount = config.max_total_monthly_deposit - config.max_deposit_per_bank;
 
+    const availableBanks = banks.filter(b => b.rateVersions && b.rateVersions.length > 0);
+
     const getOptimalIds = (bank: Bank, canTakeSalary: boolean, canTakeHousing: boolean) => {
       const version = getRateVersionForDate(bank, openingDate);
+      if (!version) return [];
       const filtered = getFilteredPrimeRates(bank, months, version);
       return filtered
         .filter(p => {
           if (p.group === 'salary') return canTakeSalary;
           if (p.group === 'housing') return canTakeHousing;
           if (p.group.includes('social_vulnerable')) return isSociallyVulnerable;
+          if (p.id === 'post_first') return isPoFirst;
           return true;
         })
         .map(p => p.id);
     };
 
     if (hanaSalary) {
-      const bankHana = banks.find(b => b.id === 'hana') as Bank;
+      const bankHana = availableBanks.find(b => b.id === 'hana');
       
       let overallBest = {
         box1: null as BoxState | null,
@@ -96,60 +103,62 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
         totalMaturity: 0
       };
 
-      banks.forEach(otherBank => {
-        if (otherBank.id === 'hana') return;
+      if (bankHana) {
+        availableBanks.forEach(otherBank => {
+          if (otherBank.id === 'hana') return;
 
-        const simulateHousing = (housingToHana: boolean) => {
-          const actualHousingToHana = hasHousing ? (housingBankId === 'hana') : (housingToHana && wantsNewHousing);
-          const actualHousingToOther = hasHousing ? (housingBankId === otherBank.id) : (!housingToHana && wantsNewHousing);
+          const simulateHousing = (housingToHana: boolean) => {
+            const actualHousingToHana = hasHousing ? (housingBankId === 'hana') : (housingToHana && wantsNewHousing);
+            const actualHousingToOther = hasHousing ? (housingBankId === otherBank.id) : (!housingToHana && wantsNewHousing);
 
-          const idsHana = getOptimalIds(bankHana, true, actualHousingToHana);
-          const idsOther = getOptimalIds(otherBank, false, actualHousingToOther);
+            const idsHana = getOptimalIds(bankHana, true, actualHousingToHana);
+            const idsOther = getOptimalIds(otherBank, false, actualHousingToOther);
 
-          const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months, openingDate, banks, config);
-          const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months, openingDate, banks, config);
+            const resHana = calculateResult({ bankId: 'hana', amount: 10000, selectedPrimeIds: idsHana }, months, openingDate, banks, config);
+            const resOther = calculateResult({ bankId: otherBank.id, amount: 10000, selectedPrimeIds: idsOther }, months, openingDate, banks, config);
 
-          const rateHana = resHana.baseRate + resHana.primeRate;
-          const rateOther = resOther.baseRate + resOther.primeRate;
+            const rateHana = resHana.baseRate + resHana.primeRate;
+            const rateOther = resOther.baseRate + resOther.primeRate;
 
-          const amtHana = rateHana >= rateOther ? primaryAmount : secondaryAmount;
-          const amtOther = rateHana >= rateOther ? secondaryAmount : primaryAmount;
+            const amtHana = rateHana >= rateOther ? primaryAmount : secondaryAmount;
+            const amtOther = rateHana >= rateOther ? secondaryAmount : primaryAmount;
 
-          const finalHana = calculateResult({ bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }, months, openingDate, banks, config);
-          const finalOther = calculateResult({ bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther }, months, openingDate, banks, config);
+            const finalHana = calculateResult({ bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }, months, openingDate, banks, config);
+            const finalOther = calculateResult({ bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther }, months, openingDate, banks, config);
 
-          return {
-            total: finalHana.total + finalOther.total,
-            box1: rateHana >= rateOther ? { bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana } : { bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther },
-            box2: rateHana >= rateOther ? { bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther } : { bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }
+            return {
+              total: finalHana.total + finalOther.total,
+              box1: rateHana >= rateOther ? { bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana } : { bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther },
+              box2: rateHana >= rateOther ? { bankId: otherBank.id, amount: amtOther, selectedPrimeIds: idsOther } : { bankId: 'hana', amount: amtHana, selectedPrimeIds: idsHana }
+            };
           };
-        };
 
-        let scenario;
-        if (hasHousing) {
-          scenario = simulateHousing(housingBankId === 'hana');
-        } else if (wantsNewHousing) {
-          const s1 = simulateHousing(true);
-          const s2 = simulateHousing(false);
-          scenario = s1.total > s2.total ? s1 : s2;
-        } else {
-          // Both false
-          scenario = simulateHousing(false); 
-        }
+          let scenario;
+          if (hasHousing) {
+            scenario = simulateHousing(housingBankId === 'hana');
+          } else if (wantsNewHousing) {
+            const s1 = simulateHousing(true);
+            const s2 = simulateHousing(false);
+            scenario = s1.total > s2.total ? s1 : s2;
+          } else {
+            // Both false
+            scenario = simulateHousing(false); 
+          }
 
-        if (scenario.total > overallBest.totalMaturity) {
-          overallBest = {
-            box1: scenario.box1,
-            box2: scenario.box2,
-            totalMaturity: scenario.total
-          };
-        }
-      });
+          if (scenario.total > overallBest.totalMaturity) {
+            overallBest = {
+              box1: scenario.box1,
+              box2: scenario.box2,
+              totalMaturity: scenario.total
+            };
+          }
+        });
+      }
 
       return { box1: overallBest.box1!, box2: overallBest.box2! };
 
     } else {
-      const bankList = banks;
+      const bankList = availableBanks;
       const bankPairs: [Bank, Bank][] = [];
       for (let i = 0; i < bankList.length; i++) {
         for (let j = i + 1; j < bankList.length; j++) {
@@ -227,7 +236,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     if (step === 1) {
       if (hasHousing) setStep(2);
       else setStep(3);
-    } else if (step < 4) {
+    } else if (step < 5) {
       setStep(step + 1);
     } else {
       handleStartAnalysis();
@@ -288,6 +297,22 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 4,
+      title: "우체국 은행 첫 거래인가요?",
+      description: "첫 거래 고객이라면 더 높은 금리를 받을 수 있어요.",
+      icon: <Building2 className="text-blue-500" size={24} />,
+      content: (
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => setIsPoFirst(true)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${isPoFirst === true ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
+            <span className={`font-bold ${isPoFirst === true ? 'text-blue-700' : 'text-slate-900'}`}>네</span>
+          </button>
+          <button onClick={() => setIsPoFirst(false)} className={`py-5 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${isPoFirst === false ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
+            <span className={`font-bold ${isPoFirst === false ? 'text-blue-700' : 'text-slate-900'}`}>아니오</span>
+          </button>
+        </div>
+      )
+    },
+    {
+      id: 5,
       title: "하나은행으로\n월급을 받나요?",
       description: "월급까지 받으면 나라사랑카드 혜택이 꽉 채워져요.",
       icon: <Zap className="text-orange-500" size={24} />,
@@ -374,7 +399,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           {/* Header - Fixed */}
           <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
             <button onClick={handleBack} className="p-2 text-slate-900"><ChevronLeft size={28} strokeWidth={2.5} /></button>
-            <div className="flex gap-1.5">{[1, 2, 3, 4].map(i => <div key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${step === i ? 'w-6 bg-blue-500' : 'bg-slate-200'}`} />)}</div>
+            <div className="flex gap-1.5">{[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${step === i ? 'w-6 bg-blue-500' : 'bg-slate-200'}`} />)}</div>
             <div className="w-11" />
           </header>
           <div className="flex-1 px-6 pt-20 pb-48 flex flex-col overflow-y-auto">
@@ -389,10 +414,15 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
               <div className="w-full">
                 <button
                   onClick={handleNext}
-                  disabled={(step === 1 && hasHousing === null) || (step === 2 && housingBankId === '') || (step === 4 && hanaSalary === null)}
+                  disabled={
+                    (step === 1 && hasHousing === null) || 
+                    (step === 2 && housingBankId === '') || 
+                    (step === 4 && isPoFirst === null) ||
+                    (step === 5 && hanaSalary === null)
+                  }
                   className="w-full h-16 bg-[#1A5CFF] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-50"
                 >
-                  {step === 4 ? "추천받기" : "다음으로"}
+                  {step === 5 ? "추천받기" : "다음으로"}
                 </button>
                 <div className="mt-4 flex items-center justify-center gap-2 text-slate-400">
                   <Info size={14} /><span className="text-[11px] font-bold tracking-tight">입력하신 정보는 오직 추천에만 활용해요.</span>
