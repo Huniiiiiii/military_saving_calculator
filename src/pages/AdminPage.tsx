@@ -121,8 +121,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
         effective_date: selectedVersion.effectiveDate,
         max_prime_rate: Number.isFinite(maxPrimeRate) ? maxPrimeRate : 0,
         base_rates: selectedVersion.baseRates,
-        prime_rates: selectedVersion.primeRates,
-        is_active: selectedVersion.isActive ?? true
+        prime_rates: selectedVersion.primeRates
       };
 
       const payloadWithoutActive = {
@@ -449,8 +448,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
     const bank = newData.banks.find((b: Bank) => b.id === selectedBankId);
     if (bank) {
       const newVersion: RateVersion = latest 
-        ? { ...latest, id: newVersionId, effectiveDate: newEffectiveDate, isActive: true }
-        : { id: newVersionId, effectiveDate: newEffectiveDate, maxPrimeRate: 0.05, baseRates: [], primeRates: [], isActive: true };
+        ? { ...latest, id: newVersionId, effectiveDate: newEffectiveDate }
+        : { id: newVersionId, effectiveDate: newEffectiveDate, maxPrimeRate: 0.05, baseRates: [], primeRates: [] };
       bank.rateVersions = [newVersion, ...bank.rateVersions];
       setFullData(newData);
       setSelectedVersionId(newVersionId);
@@ -637,12 +636,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
             ) : (
               currentBank?.rateVersions.map((v) => (
                 <div key={v.id} onClick={() => goToEditor(v.id)} className={`group relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${selectedVersionId === v.id ? 'bg-white border-blue-500 shadow-xl ring-4 ring-blue-50' : 'bg-white border-transparent shadow-sm hover:border-slate-200'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 mb-1">
-                      <Calendar size={14} className={selectedVersionId === v.id ? 'text-blue-500' : 'text-slate-400'} />
-                      <span className={`text-[15px] font-black ${selectedVersionId === v.id ? 'text-slate-900' : 'text-slate-600'}`}>{v.effectiveDate}</span>
-                    </div>
-                    {v.isActive === false && <EyeOff size={14} className="text-red-400" />}
+                  <div className="flex items-center gap-3 mb-1">
+                    <Calendar size={14} className={selectedVersionId === v.id ? 'text-blue-500' : 'text-slate-400'} />
+                    <span className={`text-[15px] font-black ${selectedVersionId === v.id ? 'text-slate-900' : 'text-slate-600'}`}>{v.effectiveDate}</span>
                   </div>
                   <button onClick={(e) => { e.stopPropagation(); handleDeleteVersion(v.id); }} className="absolute top-4 right-4 p-3 text-slate-300 hover:text-red-500 transition-all active:scale-90"><Trash2 size={18} /></button>
                 </div>
@@ -721,15 +717,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
                     <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{currentBank?.name}</h2>
                     <a href={currentBank?.link} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"><ExternalLink size={18} /></a>
                   </div>
-                  <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
-                    <span className="text-[11px] font-black text-slate-500">버전 활성화</span>
-                    <button 
-                      onClick={() => updateVersionField('isActive', !(selectedVersion.isActive ?? true))}
-                      className={`w-12 h-7 rounded-full transition-all relative ${selectedVersion.isActive !== false ? 'bg-blue-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full transition-all ${selectedVersion.isActive !== false ? 'left-5.5' : 'left-0.5'}`} />
-                    </button>
-                  </div>
+
                 </div>
               </header>
 

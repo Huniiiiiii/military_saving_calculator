@@ -112,7 +112,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const textColor = color === 'blue' ? 'text-blue-600' : 'text-purple-600';
 
     const version = bank ? getRateVersionForDate(bank, targetDate) : null;
-    const filteredPrimeRates = bank && version ? getFilteredPrimeRates(bank, months, version) : [];
+    const filteredPrimeRates = bank && version ? getFilteredPrimeRates(bank, months, version, targetDate) : [];
 
     const minRequiredMonths = version && version.primeRates.length > 0
       ? Math.min(...version.primeRates.map(p => p.min_months || 0))
@@ -150,7 +150,7 @@ const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }`}
             >
               <option value="" disabled>은행 선택</option>
-              {banks.filter(b => b.rateVersions && b.rateVersions.length > 0).map(b => {
+              {banks.filter(b => b.isActive !== false && b.rateVersions && b.rateVersions.length > 0).map(b => {
                 const v = getRateVersionForDate(b, targetDate);
                 const maxPrimePct = v ? (v.maxPrimeRate * 100).toFixed(1) : '0.0';
                 return (

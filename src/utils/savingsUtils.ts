@@ -57,7 +57,6 @@ export interface RateVersion {
   baseRates: { range: number[]; rate: number }[];
   primeRates: PrimeRate[];
   maxPrimeRate: number;
-  isActive?: boolean;
 }
 
 export interface Bank {
@@ -108,8 +107,8 @@ export const getRateVersionForDate = (bank: Bank, date: Date): RateVersion | nul
 /**
  * 은행 및 개월 수에 따른 유효한 우대금리 목록을 필터링합니다.
  */
-export const getFilteredPrimeRates = (_bank: Bank, months: number, version: RateVersion) => {
-  const today = new Date();
+export const getFilteredPrimeRates = (_bank: Bank, months: number, version: RateVersion, referenceDate: Date = new Date()) => {
+  const today = new Date(referenceDate);
   today.setHours(0, 0, 0, 0);
 
   return version.primeRates.filter(prime => {
@@ -189,7 +188,7 @@ export const calculateResult = (
   const baseRateObj = version.baseRates.find(r => months >= r.range[0] && months <= r.range[1]);
   const baseRate = baseRateObj ? baseRateObj.rate : 0.05;
   
-  const filteredPrimes = getFilteredPrimeRates(bank, months, version);
+  const filteredPrimes = getFilteredPrimeRates(bank, months, version, openingDate);
   const selectedPrimes = filteredPrimes.filter(p => boxState.selectedPrimeIds.includes(p.id));
   const totalSelectedPrime = selectedPrimes.reduce((sum, p) => sum + p.rate, 0);
   const appliedPrimeRate = Math.min(totalSelectedPrime, version.maxPrimeRate);

@@ -45,6 +45,26 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
   const { banks, globalConfigs } = data;
   const config = getEffectiveConfig(globalConfigs, openingDate.toISOString().split('T')[0]);
 
+  // Get the valid step considering inactive banks
+  const postBank = banks.find(b => b.id === 'po');
+  const hanaBank = banks.find(b => b.id === 'hana');
+  const postIsActive = postBank?.isActive !== false;
+  const hanaIsActive = hanaBank?.isActive !== false;
+
+  // Auto-advance if current step should be skipped
+  React.useLayoutEffect(() => {
+    let nextStep = step;
+    if (nextStep === 4 && !postIsActive) {
+      nextStep = hanaIsActive ? 5 : 6;
+    } else if (nextStep === 5 && !hanaIsActive) {
+      nextStep = 6;
+    }
+    
+    if (nextStep !== step) {
+      setStep(nextStep);
+    }
+  }, [step, postIsActive, hanaIsActive]);
+
   const handleStartAnalysis = () => {
     if (import.meta.env.PROD) {
       ReactGA.event({
@@ -77,12 +97,15 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     const primaryAmount = config.max_deposit_per_bank;
     const secondaryAmount = config.max_total_monthly_deposit - config.max_deposit_per_bank;
 
-    const availableBanks = banks.filter(b => b.rateVersions && b.rateVersions.length > 0);
+    const availableBanks = banks.filter(b => {
+      if (b.isActive === false) return false;
+      return b.rateVersions && b.rateVersions.length > 0;
+    });
 
     const getOptimalIds = (bank: Bank, canTakeSalary: boolean, canTakeHousing: boolean) => {
       const version = getRateVersionForDate(bank, openingDate);
       if (!version) return [];
-      const filtered = getFilteredPrimeRates(bank, months, version);
+      const filtered = getFilteredPrimeRates(bank, months, version, openingDate);
       return filtered
         .filter(p => {
           if (p.group === 'salary') return canTakeSalary;
@@ -236,16 +259,26 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     if (step === 1) {
       if (hasHousing) setStep(2);
       else setStep(3);
+    } else if (step === 3) {
+      // Skip step 4 if po(post office) bank is inactive
+      if (postIsActive) setStep(4);
+      else if (hanaIsActive) setStep(5);
+      else handleStartAnalysis(); // Both inactive, start directly
+    } else if (step === 4) {
+      // From step 4, go to step 5 if hana is active, otherwise start analysis
+      if (hanaIsActive) setStep(5);
+      else handleStartAnalysis();
+    } else if (step === 5) {
+      handleStartAnalysis();
     } else if (step < 5) {
       setStep(step + 1);
-    } else {
-      handleStartAnalysis();
     }
   };
 
   const handleBack = () => {
     if (step === 1) onBack();
     else if (step === 3 && !hasHousing) setStep(1);
+    else if (step === 5 && !postIsActive) setStep(3);
     else setStep(step - 1);
   };
 
@@ -275,7 +308,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
         <div className="grid grid-cols-1 gap-3">
           <select value={housingBankId} onChange={(e) => setHousingBankId(e.target.value)} className="w-full py-6 bg-white border-2 border-slate-100 rounded-2xl px-5 font-bold text-slate-400 outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer">
             <option value="" disabled>은행 선택</option>
-            {banks.map(bank => <option key={bank.id} value={bank.id} className="text-slate-800">{bank.name}</option>)}
+            {banks.filter(b => b.isActive !== false).map(bank => <option key={bank.id} value={bank.id} className="text-slate-800">{bank.name}</option>)}
             <option value="none" className="text-slate-800">타행이용</option>
           </select>
         </div>
@@ -390,7 +423,15 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     );
   }
 
-  const currentStepData = stepContent.find(s => s.id === step)!;
+  // Filter stepContent based on active banks
+
+  const visibleSteps = stepContent.filter(s => {
+    if (s.id === 4 && !postIsActive) return false; // Hide step 4 if post is inactive
+    if (s.id === 5 && !hanaIsActive) return false; // Hide step 5 if hana is inactive
+    return true;
+  });
+
+  const currentStepData = visibleSteps.find(s => s.id === step)!;
 
   return (
     <>
@@ -399,7 +440,9 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           {/* Header - Fixed */}
           <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 px-4 flex items-center justify-between bg-[#F8FAFF] z-40 border-b border-slate-200 shadow-sm">
             <button onClick={handleBack} className="p-2 text-slate-900"><ChevronLeft size={28} strokeWidth={2.5} /></button>
-            <div className="flex gap-1.5">{[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${step === i ? 'w-6 bg-blue-500' : 'bg-slate-200'}`} />)}</div>
+            <div className="flex gap-1.5">{visibleSteps.map(s => (
+              <div key={s.id} className={`w-2 h-2 rounded-full transition-all duration-300 ${step === s.id ? 'w-6 bg-blue-500' : 'bg-slate-200'}`} />
+            ))}</div>
             <div className="w-11" />
           </header>
           <div className="flex-1 px-6 pt-20 pb-48 flex flex-col overflow-y-auto">

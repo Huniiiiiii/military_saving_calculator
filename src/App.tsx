@@ -76,6 +76,7 @@ const App: React.FC = () => {
 
         const processedBanks: Bank[] = banks.map(bank => ({
           ...bank,
+          isActive: bank.is_active ?? true,
           rateVersions: (versions || [])
             .filter(v => v.bank_id === bank.id)
             .map(v => ({
