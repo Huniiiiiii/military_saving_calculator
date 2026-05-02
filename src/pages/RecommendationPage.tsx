@@ -316,7 +316,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 3,
-      title: "기초생활수급자 대상자인가요?",
+      title: "기초생활수급자\n대상자인가요?",
       description: "증빙 서류가 있다면 금리를 훨씬 더 높일 수 있어요.",
       icon: <UserCheck className="text-purple-500" size={24} />,
       content: (
@@ -330,8 +330,8 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 4,
-      title: "우체국 통장, 써본 적 있나요?",
-      description: "첫 사용이라면 금리를 훨씬 더 높게 받을 수 있어요.",
+      title: "우체국 통장\n써본 적 있나요?",
+      description: "첫 사용이면 최대 1%를 더 받을 수 있어요.",
       icon: <Building2 className="text-blue-500" size={24} />,
       content: (
         <div className="grid grid-cols-2 gap-3">
@@ -346,7 +346,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
     },
     {
       id: 5,
-      title: "하나은행으로\n월급을 받나요?",
+      title: "군 월급\n하나은행으로 받을 예정이에요?",
       description: "월급까지 받으면 나라사랑카드 혜택이 꽉 채워져요.",
       icon: <Zap className="text-orange-500" size={24} />,
       content: (
@@ -362,7 +362,7 @@ const RecommendationPage: React.FC<RecommendationPageProps> = ({
           <div className="bg-orange-50/50 rounded-2xl p-4 border border-orange-100/50">
             <p className="text-[11px] text-orange-600 font-bold leading-relaxed flex gap-1.5">
               <span className="shrink-0">💡</span>
-              <span>하나은행 급여 이체를 선택할 경우, 모든 은행 조합 중 절대적인 최고 금리가 아닐 수 있어요.</span>
+              <span>하나은행 월급 이체를 선택할 경우, 모든 은행 조합 중 절대적인 최고 금리가 아닐 수 있어요.</span>
             </p>
           </div>
           <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
