@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import onboardingCh from '../assets/onboarding_ch.webp';
+import { supabase } from '../lib/supabase';
 
 interface OnboardingProps {
   onStart: () => void;
@@ -10,7 +11,26 @@ interface OnboardingProps {
 }
 
 const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
-  const [clickCount, setClickCount] = React.useState(0);
+  const [clickCount, setClickCount] = useState(0);
+  const [percentage, setPercentage] = useState<string>("11.0");
+
+  useEffect(() => {
+    const fetchPercentage = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('onboarding')
+          .select('percentage')
+          .single();
+        
+        if (data && !error) {
+          setPercentage(data.percentage);
+        }
+      } catch (err) {
+        console.error('Error fetching onboarding percentage:', err);
+      }
+    };
+    fetchPercentage();
+  }, []);
 
   const handleStart = () => {
     if (import.meta.env.PROD) {
@@ -76,7 +96,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
 
             <div className="grid grid-cols-3 gap-2 mb-4 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
               {[
-                { label: "최고 11.0%", sub: "은행 금리" },
+                { label: `최고 ${percentage}%`, sub: "은행 금리" },
                 { label: "세금 0원", sub: "비과세" },
                 { label: "원금만큼 더", sub: "정부 지원" },
               ].map((item, i) => (

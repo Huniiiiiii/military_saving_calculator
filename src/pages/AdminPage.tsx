@@ -6,7 +6,7 @@ import type { User } from '@supabase/supabase-js';
 import type { GlobalData } from '../App';
 import type { GlobalConfig, Bank, RateVersion } from '../utils/savingsUtils';
 
-type AdminStep = 'banks' | 'versions' | 'editor' | 'branches' | 'configs' | 'bank_manager';
+type AdminStep = 'banks' | 'versions' | 'editor' | 'branches' | 'configs' | 'bank_manager' | 'onboarding';
 type EditableBank = Bank & { display_order?: number };
 type MilitaryBranch = GlobalData['militaryBranches'][number];
 
@@ -91,10 +91,17 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
       setSelectedBankId(fullData.banks[0].id);
     }
   };
+  const goToOnboarding = () => {
+    setStep('onboarding');
+    setSelectedBankId(null);
+    setSelectedVersionId(null);
+    setSelectedBranchIntId(null);
+    setSelectedConfigId(null);
+  };
 
   const goBackStep = () => {
     if (step === 'editor') setStep('versions');
-    else if (step === 'versions' || step === 'branches' || step === 'configs' || step === 'bank_manager') setStep('banks');
+    else if (step === 'versions' || step === 'branches' || step === 'configs' || step === 'bank_manager' || step === 'onboarding') setStep('banks');
     else onBack();
   };
 
@@ -110,6 +117,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
     }
     if (step === 'bank_manager') {
       await saveBanks();
+      return;
+    }
+    if (step === 'onboarding') {
+      await saveOnboarding();
       return;
     }
     if (!selectedVersion || !selectedBankId) return;
@@ -435,6 +446,42 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
     }
   };
 
+  const updateOnboardingField = (value: string) => {
+    setFullData({
+      ...fullData,
+      onboarding: { ...fullData.onboarding, percentage: value }
+    });
+  };
+
+  const saveOnboarding = async () => {
+    setIsSaving(true);
+    try {
+      const { data: firstRow } = await supabase.from('onboarding').select('id').limit(1).maybeSingle();
+      let error;
+      if (firstRow?.id) {
+        const { error: updateError } = await supabase
+          .from('onboarding')
+          .update({ percentage: fullData.onboarding.percentage })
+          .eq('id', firstRow.id);
+        error = updateError;
+      } else {
+        const { error: updateError } = await supabase
+          .from('onboarding')
+          .update({ percentage: fullData.onboarding.percentage })
+          .not('percentage', 'is', null);
+        error = updateError;
+      }
+      if (error) throw error;
+      alert('온보딩 설정이 성공적으로 저장되었습니다!');
+      onRefresh();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      alert('저장 실패: ' + msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // --- Version Handlers ---
   const handleAddVersion = async () => {
     if (!selectedBankId || !currentBank) return;
@@ -551,6 +598,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
             <LayoutGrid size={14} className="text-blue-500" />
             <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Global</p>
           </div>
+          <button onClick={goToOnboarding} className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl font-black text-sm transition-all mb-2 ${step === 'onboarding' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
+            온보딩 화면 관리 <ChevronRight size={16} opacity={0.3} />
+          </button>
           <button onClick={goToConfigs} className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl font-black text-sm transition-all mb-2 ${step === 'configs' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
             한도 및 세율 관리 <ChevronRight size={16} opacity={0.3} />
           </button>
@@ -576,23 +626,35 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
           ))}
         </aside>
 
-        <aside className={`w-full md:w-80 bg-[#FBFCFF] border-r border-slate-100 p-4 md:p-6 space-y-4 overflow-y-auto ${step !== 'versions' && step !== 'branches' && step !== 'configs' && step !== 'bank_manager' ? 'hidden md:block' : 'block'}`}>
+        <aside className={`w-full md:w-80 bg-[#FBFCFF] border-r border-slate-100 p-4 md:p-6 space-y-4 overflow-y-auto ${step !== 'versions' && step !== 'branches' && step !== 'configs' && step !== 'bank_manager' && step !== 'onboarding' ? 'hidden md:block' : 'block'}`}>
           <div className="flex items-center justify-between mb-4 px-1">
             <div className="flex items-center gap-2">
               <History size={14} className="text-blue-500" />
               <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">
-                {step === 'configs' ? 'Config Records' : step === 'branches' ? 'Branch Records' : step === 'bank_manager' ? 'Bank Records' : 'Versions'}
+                {step === 'configs' ? 'Config Records' : step === 'branches' ? 'Branch Records' : step === 'bank_manager' ? 'Bank Records' : step === 'onboarding' ? 'Onboarding Settings' : 'Versions'}
               </p>
             </div>
-            <button 
-              onClick={step === 'configs' ? handleAddConfig : step === 'branches' ? handleAddBranch : step === 'bank_manager' ? handleAddBank : handleAddVersion} 
-              className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
-            >
-              <Plus size={18} />
-            </button>
+            {step !== 'onboarding' && (
+              <button 
+                onClick={step === 'configs' ? handleAddConfig : step === 'branches' ? handleAddBranch : step === 'bank_manager' ? handleAddBank : handleAddVersion} 
+                className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+              >
+                <Plus size={18} />
+              </button>
+            )}
           </div>
           <div className="space-y-3">
-            {step === 'configs' ? (
+            {step === 'onboarding' ? (
+              <div onClick={() => setStep('onboarding')} className={`group relative p-5 rounded-2xl border-2 cursor-pointer transition-all bg-white border-blue-500 shadow-xl ring-4 ring-blue-50`}>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Settings2 size={12} className="text-blue-500" />
+                    <span className="text-[11px] font-bold text-blue-600">Main Display</span>
+                  </div>
+                  <span className="text-[15px] font-black text-slate-900">온보딩 텍스트 설정</span>
+                </div>
+              </div>
+            ) : step === 'configs' ? (
               fullData.globalConfigs.map((c) => (
                 <div key={c.id} onClick={() => setSelectedConfigId(c.id)} className={`group relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${selectedConfigId === c.id ? 'bg-white border-blue-500 shadow-xl ring-4 ring-blue-50' : 'bg-white border-transparent shadow-sm hover:border-slate-200'}`}>
                   <div className="flex flex-col gap-1">
@@ -645,8 +707,38 @@ const AdminPage: React.FC<AdminPageProps> = ({ initialData, onBack, onRefresh })
           </div>
         </aside>
 
-        <section className={`flex-1 bg-white p-4 md:p-10 overflow-y-auto ${step !== 'editor' && step !== 'branches' && step !== 'configs' && step !== 'bank_manager' ? 'hidden md:block' : 'block'}`}>
-          {step === 'configs' ? (
+        <section className={`flex-1 bg-white p-4 md:p-10 overflow-y-auto ${step !== 'editor' && step !== 'branches' && step !== 'configs' && step !== 'bank_manager' && step !== 'onboarding' ? 'hidden md:block' : 'block'}`}>
+          {step === 'onboarding' ? (
+            <div className="max-w-3xl mx-auto space-y-10 pb-20">
+              <header><div className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest mb-1"><Settings2 size={12} /> Onboarding Management</div><h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">온보딩 화면 설정</h2></header>
+              <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-6">
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">최고 금리 표시 (%)</label>
+                    <p className="text-[11px] font-bold text-slate-400 mb-2 ml-1">온보딩 페이지의 '최고 OO.O%' 부분에 표시될 숫자입니다.</p>
+                    <input 
+                      type="text" 
+                      value={fullData.onboarding.percentage} 
+                      onChange={(e) => updateOnboardingField(e.target.value)} 
+                      className="w-full h-12 bg-white rounded-xl px-4 font-black text-slate-900 border-2 border-transparent focus:border-blue-500 outline-none shadow-sm" 
+                      placeholder="예: 11.0"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100">
+                <p className="text-sm font-bold text-blue-800 flex items-center gap-2 mb-2">
+                  <EyeOff size={16} /> 미리보기
+                </p>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100/50">
+                  <div className="flex flex-col items-center">
+                    <span className="text-[12px] font-black text-slate-800">최고 {fullData.onboarding.percentage}%</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">은행 금리</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : step === 'configs' ? (
             selectedConfig ? (
               <div className="max-w-3xl mx-auto space-y-10 pb-20">
                 <header><div className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest mb-1"><Settings2 size={12} /> Editing Global Config</div><h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{selectedConfig.version}</h2></header>

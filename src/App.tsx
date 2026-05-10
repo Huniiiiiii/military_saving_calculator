@@ -26,6 +26,9 @@ export interface GlobalData {
     display_order: number;
   }[];
   banks: Bank[];
+  onboarding: {
+    percentage: Float64Array;
+  };
 }
 
 if (import.meta.env.PROD) {
@@ -64,12 +67,14 @@ const App: React.FC = () => {
           { data: configs },
           { data: branches },
           { data: banks },
-          { data: versions }
+          { data: versions },
+          { data: onboarding }
         ] = await Promise.all([
           supabase.from('global_config').select('*').order('effective_day_config', { ascending: false }),
           supabase.from('military_branches').select('*').order('display_order').order('effective_day', { ascending: false }),
           supabase.from('banks').select('*').order('display_order'),
-          supabase.from('rate_versions').select('*').order('effective_date', { ascending: false })
+          supabase.from('rate_versions').select('*').order('effective_date', { ascending: false }),
+          supabase.from('onboarding').select('percentage').single()
         ]);
 
         if (!configs || !branches || !banks) throw new Error('Failed to fetch required data');
@@ -92,7 +97,8 @@ const App: React.FC = () => {
           version: configs[0].version,
           globalConfigs: configs,
           militaryBranches: branches,
-          banks: processedBanks
+          banks: processedBanks,
+          onboarding: onboarding || { percentage: "11.0" }
         };
 
         setGlobalData(finalData);
