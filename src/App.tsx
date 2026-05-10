@@ -27,7 +27,7 @@ export interface GlobalData {
   }[];
   banks: Bank[];
   onboarding: {
-    percentage: Float64Array;
+    percentage: string;
   };
 }
 
