@@ -76,7 +76,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart, onAdmin }) => {
 
             <div className="grid grid-cols-3 gap-2 mb-4 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
               {[
-                { label: "최고 10.5%", sub: "은행 금리" },
+                { label: "최고 11.0%", sub: "은행 금리" },
                 { label: "세금 0원", sub: "비과세" },
                 { label: "원금만큼 더", sub: "정부 지원" },
               ].map((item, i) => (
